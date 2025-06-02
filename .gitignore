@@ -10,12 +10,21 @@ src/environments/environment.prod.ts
 /tmp
 /out-tsc
 /bazel-out
+/build
+*.war
+*.jar
+*.class
+*.o
+*.so
 
 # Node
 /node_modules
+/node
 npm-debug.log
 yarn-debug.log
 yarn-error.log
+/.pnp
+.pnp.js
 
 # IDEs and editors
 .idea/
@@ -53,3 +62,22 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Build directories
+/bin/
+/build/
+/dist/
+/out/
+
+# Dependencies
+/.gradle/
+/.m2/
+
+# Angular specific
+/.angular
+*.js.map
