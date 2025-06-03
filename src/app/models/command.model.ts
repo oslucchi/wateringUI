@@ -16,6 +16,7 @@ export class CommandType {
     static START_CYCLE = 'START_CYCLE';
     static REVIEW_SCHEDULE = 'REVIEW_SCHEDULE';
     static CONFIGURE = 'CONFIGURE';
+    static STARTMAN = 'startman'; // New manual start command
 
     static getStartAreaCommand(areaNumber: number): string {
         return `${this.START_AREA} ${areaNumber}`;
@@ -23,5 +24,9 @@ export class CommandType {
 
     static getStopAreaCommand(areaNumber: number): string {
         return `${this.STOP_AREA} ${areaNumber}`;
+    }
+
+    static getStartManCommand(areaNumber: number): string {
+        return `${this.STARTMAN} ${areaNumber}`;
     }
 } 
