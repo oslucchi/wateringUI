@@ -10,6 +10,6 @@ export class CliService {
     constructor(private socketService: SocketService) {}
 
     executeCommand(command: CliCommand): Observable<CliResponse> {
-        return this.socketService.executeCommand(command.cmd);
+        return this.socketService.executeCommand(command);
     }
 } 

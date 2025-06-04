@@ -183,7 +183,7 @@ export class StartAreaComponent extends BaseCommandComponent implements OnInit {
         const isStarting = !targetArea.isWatering;
 
         this.loading = true;
-        this.cliService.executeCommand({ cmd: command }).subscribe({
+        this.cliService.executeCommand(command).subscribe({
             next: (response: CliResponse) => {
                 if (response.status === 'OK') {
                     // If this was a start command, first reset all areas

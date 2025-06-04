@@ -26,6 +26,7 @@ export abstract class BaseCommandComponent implements OnDestroy {
                 next: (response) => {
                     this.loading = false;
                     this.response = response;
+                    this.handleResponse(response);
                 },
                 error: (err) => {
                     this.loading = false;
@@ -33,6 +34,12 @@ export abstract class BaseCommandComponent implements OnDestroy {
                     console.error('Command execution error:', err);
                 }
             });
+    }
+
+    protected handleResponse(response: CliResponse): void {
+        // Base implementation - can be overridden by child components
+        // By default, just stores the response
+        this.response = response;
     }
 
     ngOnDestroy() {

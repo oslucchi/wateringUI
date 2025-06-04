@@ -1,5 +1,6 @@
 export interface CliCommand {
-    cmd: string;
+    command: string;
+    parameters?: string[];
 }
 
 export interface CliResponse {
@@ -9,24 +10,38 @@ export interface CliResponse {
 
 export class CommandType {
     static STATUS = 'status';
-    static MODE_AUTO = 'mode a';
-    static MODE_MANUAL = 'mode m';
-    static START_AREA = 'start';  // Will be concatenated with area number
-    static STOP_AREA = 'stop';   // Will be concatenated with area number
-    static START_CYCLE = 'START_CYCLE';
-    static REVIEW_SCHEDULE = 'REVIEW_SCHEDULE';
-    static CONFIGURE = 'CONFIGURE';
-    static STARTMAN = 'startman'; // New manual start command
+    static MODE = 'mode';
+    static START = 'start';
+    static STOP = 'stop';
+    static STARTMAN = 'startman';
+    static CONFIGSHOW = 'configshow';
+    static CONFIGSAVE = 'configsave';
 
-    static getStartAreaCommand(areaNumber: number): string {
-        return `${this.START_AREA} ${areaNumber}`;
+    static getStartAreaCommand(areaNumber: number): CliCommand {
+        return {
+            command: this.START,
+            parameters: [areaNumber.toString()]
+        };
     }
 
-    static getStopAreaCommand(areaNumber: number): string {
-        return `${this.STOP_AREA} ${areaNumber}`;
+    static getStopAreaCommand(areaNumber: number): CliCommand {
+        return {
+            command: this.STOP,
+            parameters: [areaNumber.toString()]
+        };
     }
 
-    static getStartManCommand(areaNumber: number): string {
-        return `${this.STARTMAN} ${areaNumber}`;
+    static getStartManCommand(areaNumber: number): CliCommand {
+        return {
+            command: this.STARTMAN,
+            parameters: [areaNumber.toString()]
+        };
+    }
+
+    static getModeCommand(mode: 'auto' | 'manual'): CliCommand {
+        return {
+            command: this.MODE,
+            parameters: [mode === 'auto' ? 'a' : 'm']
+        };
     }
 } 

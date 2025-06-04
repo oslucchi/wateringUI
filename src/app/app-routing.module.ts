@@ -4,6 +4,7 @@ import { StatusComponent } from './components/status/status.component';
 import { StartAreaComponent } from './components/start-area/start-area.component';
 import { SwitchModeComponent } from './components/switch-mode/switch-mode.component';
 import { ManualStartComponent } from './components/manual-start/manual-start.component';
+import { ConfigureComponent } from './components/configure/configure.component';
 
 const routes: Routes = [
     { path: '', redirectTo: '/status', pathMatch: 'full' },
@@ -11,6 +12,7 @@ const routes: Routes = [
     { path: 'start-area', component: StartAreaComponent },
     { path: 'switch-mode', component: SwitchModeComponent },
     { path: 'manual-start', component: ManualStartComponent },
+    { path: 'configure', component: ConfigureComponent },
     // Other routes will be added as we create their components
     { path: '**', redirectTo: '/status' }
 ];

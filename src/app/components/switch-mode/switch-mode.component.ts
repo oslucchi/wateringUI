@@ -97,8 +97,7 @@ export class SwitchModeComponent extends BaseCommandComponent {
     }
 
     setMode(mode: 'auto' | 'manual') {
-        const command = mode === 'auto' ? CommandType.MODE_AUTO : CommandType.MODE_MANUAL;
-        this.executeCommand({ cmd: command });
+        this.executeCommand(CommandType.getModeCommand(mode));
         this.currentMode = mode;
     }
 } 

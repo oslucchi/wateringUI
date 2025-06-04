@@ -41,11 +41,9 @@ import { CommandType } from '../../models/command.model';
 export class NavMenuComponent {
     menuItems = [
         { label: 'System Status', route: '/status', command: CommandType.STATUS },
-        { label: 'Manual/Auto Mode', route: '/switch-mode', command: CommandType.MODE_AUTO },
-        { label: 'Start Area', route: '/start-area', command: CommandType.START_AREA },
+        { label: 'Manual/Auto Mode', route: '/switch-mode', command: CommandType.MODE },
+        { label: 'Start Area', route: '/start-area', command: CommandType.START },
         { label: 'Manual Start', route: '/manual-start', command: CommandType.STARTMAN },
-        { label: 'Start Cycle', route: '/start-cycle', command: CommandType.START_CYCLE },
-        { label: 'Review Schedule', route: '/schedule', command: CommandType.REVIEW_SCHEDULE },
-        { label: 'Configure', route: '/configure', command: CommandType.CONFIGURE }
+        { label: 'Configure', route: '/configure', command: CommandType.CONFIGSHOW }
     ];
 } 

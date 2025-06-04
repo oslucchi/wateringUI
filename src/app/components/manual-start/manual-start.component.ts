@@ -1,27 +1,20 @@
 import { Component } from '@angular/core';
 import { BaseCommandComponent } from '../base-command/base-command.component';
 import { CliService } from '../../services/cli.service';
-import { CommandType } from '../../models/command.model';
+import { CommandType, CliResponse } from '../../models/command.model';
 
 @Component({
     selector: 'app-manual-start',
     template: `
         <div class="command-container">
-            <h2>Manual Start Control</h2>
+            <h2>Manual Cycle Control</h2>
             <div class="command-content">
-                <div class="area-selector">
-                    <label for="areaSelect">Select Area:</label>
-                    <select id="areaSelect" [(ngModel)]="selectedArea" [disabled]="loading">
-                        <option value="">Choose an area...</option>
-                        <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
-                    </select>
-                </div>
-
                 <button 
-                    (click)="startManualWatering()" 
-                    [disabled]="loading || !selectedArea"
-                    class="start-button">
-                    {{ loading ? 'Starting...' : 'Start Manual Watering' }}
+                    (click)="toggleManualCycle()" 
+                    [disabled]="loading"
+                    [class.active]="isActive"
+                    class="cycle-button">
+                    {{ loading ? 'Processing...' : (isActive ? 'Stop Manual Cycle' : 'Start Manual Cycle') }}
                 </button>
 
                 <div *ngIf="loading" class="status">
@@ -48,41 +41,34 @@ import { CommandType } from '../../models/command.model';
         }
         .command-content {
             margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .area-selector {
-            margin-bottom: 1rem;
-        }
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-        select {
-            width: 100%;
-            padding: 0.5rem;
-            font-size: 1rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-        .start-button {
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
+        .cycle-button {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
             background-color: #28a745;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            width: 100%;
+            min-width: 250px;
+            transition: background-color 0.3s;
         }
-        .start-button:disabled {
+        .cycle-button:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
+        }
+        .cycle-button.active {
+            background-color: #dc3545;
         }
         .status {
             margin-top: 1rem;
             padding: 1rem;
             background-color: #e9ecef;
             border-radius: 4px;
+            width: 100%;
         }
         .error {
             background-color: #f8d7da;
@@ -103,17 +89,37 @@ import { CommandType } from '../../models/command.model';
     `]
 })
 export class ManualStartComponent extends BaseCommandComponent {
-    areas: number[] = Array.from({ length: 8 }, (_, i) => i);
-    selectedArea: number | null = null;
+    isActive = false;
 
     constructor(cliService: CliService) {
         super(cliService);
     }
 
-    startManualWatering() {
-        if (this.selectedArea === null) return;
-        
-        const command = CommandType.getStartManCommand(this.selectedArea);
-        this.executeCommand({ cmd: command });
+    toggleManualCycle() {
+        if (this.isActive) {
+            // Send skip cycle command when stopping
+            this.executeCommand({
+                command: 'skip',
+                parameters: ['c']
+            });
+        } else {
+            // Send startman command when starting
+            this.executeCommand({
+                command: 'startman',
+                parameters: ['0']
+            });
+        }
+    }
+
+    protected override handleResponse(response: CliResponse): void {
+        super.handleResponse(response);
+        if (response.status === 'OK') {
+            // Only toggle state if command was successful
+            if (!this.isActive) {
+                this.isActive = true;
+            } else {
+                this.isActive = false;
+            }
+        }
     }
 } 
