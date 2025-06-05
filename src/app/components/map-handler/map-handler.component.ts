@@ -1,4 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { Status } from 'src/app/models/status.model';
+import { StatusService } from 'src/app/services/status.service';
 
 interface ZoneStatus {
   zoneId: number;
@@ -45,37 +48,36 @@ interface ZoneStatus {
 
     `]
 })
-        // Optional: if you need to position individual overlays differently,
-        // you can define per-zone styles here
-        // .zone-1 {
-        // Example custom styles for zone 1 if needed
-        // }
 
-        // .zone-2 {
-        // etc.
-        // }
+export class MapHandlerComponent implements OnInit, OnDestroy {
+    status: Status | null = null;
+    zones: ZoneStatus[] = 
+        Array.from({ length: Status.MNGD_FLAGS }, (_, i) => ({
+            zoneId: i,
+            isActive: false,
+        })
+    );
+    private sub: Subscription | null = null;
 
-        export class MapHandlerComponent implements OnInit {
+    constructor(private statusService: StatusService) {}
 
-  zones: ZoneStatus[] = [];
 
-  ngOnInit(): void {
-    // Replace with actual call to status service
-    this.zones = [
-      { zoneId: 0, isActive: false },
-      { zoneId: 1, isActive: false },
-      { zoneId: 2, isActive: false },
-      { zoneId: 3, isActive: false },
-      { zoneId: 4, isActive: false },
-      { zoneId: 5, isActive: false },
-      { zoneId: 6, isActive: false },
-      { zoneId: 7, isActive: false },
-      // Add more zones as needed
-    ];
-  }
+    ngOnDestroy() {
+        this.sub?.unsubscribe();
+    }
 
-  getOverlayPath(zone: ZoneStatus): string {
-    const status = zone.isActive ? 'ACT' : 'INA';
-    return `assets/images/zona-${zone.zoneId}-${status}.png`;
-  }
+    ngOnInit(): void {
+        this.sub = this.statusService.status$.subscribe((status) => {
+            this.status = status;
+            for (let i = 0; i < (status?.watering?.length ?? 0); i++)
+            {
+                this.zones[i].isActive = status?.watering![i] ?? false;
+            }
+        });
+    }
+
+    getOverlayPath(zone: ZoneStatus): string {
+        const status = zone.isActive ? 'ACT' : 'INA';
+        return `assets/images/zona-${zone.zoneId}-${status}.png`;
+    }
 }

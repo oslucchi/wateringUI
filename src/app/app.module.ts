@@ -6,7 +6,6 @@ import { RouterModule } from '@angular/router';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { NavMenuComponent } from './components/nav-menu/nav-menu.component';
-import { StatusComponent } from './components/status/status.component';
 import { StartAreaComponent } from './components/start-area/start-area.component';
 import { SwitchModeComponent } from './components/switch-mode/switch-mode.component';
 import { ManualStartComponent } from './components/manual-start/manual-start.component';
@@ -17,7 +16,6 @@ import { MapHandlerComponent } from './components/map-handler/map-handler.compon
   declarations: [
     AppComponent,
     NavMenuComponent,
-    StatusComponent,
     StartAreaComponent,
     SwitchModeComponent,
     ManualStartComponent,
@@ -31,7 +29,6 @@ import { MapHandlerComponent } from './components/map-handler/map-handler.compon
     ReactiveFormsModule,
     RouterModule.forRoot([
       { path: '', redirectTo: '/mapHandler', pathMatch: 'full' },
-      { path: 'status', component: StatusComponent },
       { path: 'start', component: StartAreaComponent },
       { path: 'switch', component: SwitchModeComponent },
       { path: 'manual', component: ManualStartComponent },

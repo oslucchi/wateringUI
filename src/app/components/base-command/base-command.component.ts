@@ -30,7 +30,7 @@ export abstract class BaseCommandComponent implements OnDestroy {
                     console.error('Command execution error:', err);
                 }
             }),
-            catchError(() => EMPTY) // So subscriber in child component doesn't need to handle error
+            catchError(() => EMPTY)
         );
 
         this.loading = true;
@@ -40,32 +40,8 @@ export abstract class BaseCommandComponent implements OnDestroy {
         return command$;
     }
 
-/*
-    protected executeCommand(command: CliCommand) {
-        this.loading = true;
-        this.error = null;
-        this.response = null;
-
-        this.cliService.executeCommand(command)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.loading = false;
-                    this.response = response;
-                    this.handleResponse(response);
-                },
-                error: (err) => {
-                    this.loading = false;
-                    this.error = 'Failed to execute command. Please try again.';
-                    console.error('Command execution error:', err);
-                }
-            });
-    }
-*/
     protected handleResponse(response: CliResponse): void {
-        // Base implementation - can be overridden by child components
-        // By default, just stores the response
-        // this.response = response;
+        ;
     }
 
     ngOnDestroy() {

@@ -8,9 +8,9 @@ import { Component } from '@angular/core';
                 <h1>Watering System Control</h1>
                 <app-nav-menu></app-nav-menu>
             </header>
-            <main>
-                <router-outlet></router-outlet>
-                <app-map-handler></app-map-handler>
+            <main class="main-layout">
+                    <app-map-handler class="left-panel"></app-map-handler>
+                    <router-outlet class="right-panel"></router-outlet>
             </main>
         </div>
     `,
@@ -32,6 +32,34 @@ import { Component } from '@angular/core';
         main {
             padding: 2rem;
         }
+
+        .main-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .left-panel {
+             /* flex: 1 1 auto; Grow as much as possible */
+            width: 800px; 
+            flex: 0 0 auto; /* Do NOT grow; use only its natural width */
+            min-width: 0;
+
+            display: flex;
+            justify-content: center; /* Center content horizontally */
+            align-items: center;     /* Center content vertically (optional) */
+        }
+
+        .right-panel {
+            flex: 0 0 auto; /* Do NOT grow; use only its natural width */
+            min-width: 300px; /* Optional: constrain minimum width */
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
     `]
 })
 export class AppComponent {
