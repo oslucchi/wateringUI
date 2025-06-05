@@ -11,6 +11,7 @@ import { StartAreaComponent } from './components/start-area/start-area.component
 import { SwitchModeComponent } from './components/switch-mode/switch-mode.component';
 import { ManualStartComponent } from './components/manual-start/manual-start.component';
 import { ConfigureComponent } from './components/configure/configure.component';
+import { MapHandlerComponent } from './components/map-handler/map-handler.component'
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { ConfigureComponent } from './components/configure/configure.component';
     StartAreaComponent,
     SwitchModeComponent,
     ManualStartComponent,
-    ConfigureComponent
+    ConfigureComponent,
+    MapHandlerComponent
   ],
   imports: [
     BrowserModule,
@@ -28,12 +30,13 @@ import { ConfigureComponent } from './components/configure/configure.component';
     FormsModule,
     ReactiveFormsModule,
     RouterModule.forRoot([
-      { path: '', redirectTo: '/status', pathMatch: 'full' },
+      { path: '', redirectTo: '/mapHandler', pathMatch: 'full' },
       { path: 'status', component: StatusComponent },
       { path: 'start', component: StartAreaComponent },
       { path: 'switch', component: SwitchModeComponent },
       { path: 'manual', component: ManualStartComponent },
-      { path: 'configure', component: ConfigureComponent }
+      { path: 'configure', component: ConfigureComponent },
+      { path: 'mapHandler', component: MapHandlerComponent }
     ]),
     AppRoutingModule
   ],

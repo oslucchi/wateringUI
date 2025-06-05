@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { BaseCommandComponent } from '../base-command/base-command.component';
 import { CliService } from '../../services/cli.service';
-import { CommandType, CliCommand } from '../../models/command.model';
+import { CommandType, CliCommand, CliResponse } from '../../models/command.model';
 import { interval, Subscription } from 'rxjs';
 
 @Component({
@@ -53,6 +53,7 @@ import { interval, Subscription } from 'rxjs';
 })
 export class StatusComponent extends BaseCommandComponent implements OnInit, OnDestroy {
     private refreshInterval: Subscription | null = null;
+    private lastStatusJson: string | null = null;
 
     constructor(protected override cliService: CliService) {
         super(cliService);
@@ -67,11 +68,26 @@ export class StatusComponent extends BaseCommandComponent implements OnInit, OnD
         this.stopStatusRefresh();
     }
 
+    private handleStatusChange(response: CliResponse) {
+        this.response = response;
+        console.log(`handleStatusChange: triggered on response ${JSON.stringify(response)}`);
+    }
+
     private refreshStatus() {
         const command: CliCommand = {
             command: CommandType.STATUS
         };
-        this.executeCommand(command);
+        // this.executeCommand(command);
+        this.executeCommand(command).subscribe((response) => {
+        const responseJson = JSON.stringify(response);
+        if (responseJson !== this.lastStatusJson) {
+            this.lastStatusJson = responseJson;
+            this.handleStatusChange(response);
+        } 
+        else {
+            // No change — skip update
+        }
+    });
     }
 
     private startStatusRefresh() {

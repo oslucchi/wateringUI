@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { EMPTY, Observable, Subject } from 'rxjs';
+import { catchError, takeUntil, tap } from 'rxjs/operators';
 import { CliService } from '../../services/cli.service';
 import { CliCommand, CliResponse } from '../../models/command.model';
 
@@ -15,6 +15,32 @@ export abstract class BaseCommandComponent implements OnDestroy {
 
     constructor(protected cliService: CliService) {}
 
+    protected executeCommand(command: CliCommand): Observable<CliResponse> {
+        const command$ = this.cliService.executeCommand(command).pipe(
+            takeUntil(this.destroy$),
+            tap({
+                next: (response) => {
+                    this.loading = false;
+                    this.response = response;
+                    this.handleResponse(response);
+                },
+                error: (err) => {
+                    this.loading = false;
+                    this.error = 'Failed to execute command. Please try again.';
+                    console.error('Command execution error:', err);
+                }
+            }),
+            catchError(() => EMPTY) // So subscriber in child component doesn't need to handle error
+        );
+
+        this.loading = true;
+        this.error = null;
+        this.response = null;
+
+        return command$;
+    }
+
+/*
     protected executeCommand(command: CliCommand) {
         this.loading = true;
         this.error = null;
@@ -35,11 +61,11 @@ export abstract class BaseCommandComponent implements OnDestroy {
                 }
             });
     }
-
+*/
     protected handleResponse(response: CliResponse): void {
         // Base implementation - can be overridden by child components
         // By default, just stores the response
-        this.response = response;
+        // this.response = response;
     }
 
     ngOnDestroy() {

@@ -10,6 +10,7 @@ import { Component } from '@angular/core';
             </header>
             <main>
                 <router-outlet></router-outlet>
+                <app-map-handler></app-map-handler>
             </main>
         </div>
     `,
