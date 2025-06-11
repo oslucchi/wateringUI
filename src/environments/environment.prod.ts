@@ -3,6 +3,6 @@ export const environment = {
     apiBasePath: '/wateringui/api',
     wateringSystem: {
         host: '192.168.200.103',
-        port: '9898'
+        port: 9899
     }
 }; 
