@@ -4,5 +4,6 @@ export const environment = {
     wateringSystem: {
         host: 'localhost',
         port: 9899
-    }
+    },
+    refreshInterval: 0
 }; 

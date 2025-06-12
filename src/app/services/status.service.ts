@@ -3,6 +3,7 @@ import { BehaviorSubject, interval, Observable, Subscription } from 'rxjs';
 import { Status } from '../models/status.model'; // your TS class
 import { CliService } from './cli.service';
 import { CliCommand, CliResponse, CommandType } from '../models/command.model';
+import { environment } from 'src/environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class StatusService implements OnDestroy {
@@ -26,7 +27,10 @@ export class StatusService implements OnDestroy {
     this.startAutoRefresh();
   }
 
-  private startAutoRefresh(refreshMs: number = 5000): void {
+  private startAutoRefresh(refreshMs: number = environment.refreshInterval): void {
+    console.log("Refresh interval is " + refreshMs);
+    if (refreshMs == 0)
+      return;
     this.refreshInterval = interval(refreshMs).subscribe(() => {
       this.fetchStatus();
     });
