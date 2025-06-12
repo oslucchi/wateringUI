@@ -13,8 +13,8 @@ export class SocketService {
     constructor(private http: HttpClient) {}
 
     executeCommand(command: CliCommand): Observable<CliResponse> {
-        console.log('Sending command object:', command);
-        console.log('Sending JSON:', JSON.stringify(command));  // Show exact JSON being sent
+        console.log('POST JSON command "' + JSON.stringify(command) +
+                    '" to "' + `${environment.apiBasePath}/command`);  // Show exact JSON being sent
         return this.http.post<CliResponse>(`${environment.apiBasePath}/command`, command)
             .pipe(
                 tap(response => console.log('Received response:', response)),  // Log the response

@@ -1,5 +1,5 @@
 export const environment = {
-    production: false,
+    production: true,
     apiBasePath: '/wateringui/api',
     wateringSystem: {
         host: '192.168.200.103',

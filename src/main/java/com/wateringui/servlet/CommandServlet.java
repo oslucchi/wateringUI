@@ -48,11 +48,22 @@ public class CommandServlet extends HttpServlet {
             this.data = message;
         }
     }
-
+    
+    @Override
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
+        response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+    }
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         logger.debug("Received command request");
-        
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
+        response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+
         StringBuilder buffer = new StringBuilder();
         String line;
         try (BufferedReader reader = request.getReader()) {

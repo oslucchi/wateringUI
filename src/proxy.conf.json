@@ -1,6 +1,6 @@
 {
     "/wateringui/api/*": {
-        "target": "http://localhost:9899",
+        "target": "http://localhost:8080",
         "secure": false,
         "changeOrigin": true
     }
