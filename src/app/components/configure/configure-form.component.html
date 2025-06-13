@@ -1,0 +1,90 @@
+    <script>
+        const iniString = `YOUR_JSON_DATA_HERE`.data;
+
+        function parseINI(data) {
+        const lines = data.split('\n');
+        const result = {};
+        let section = null;
+
+        for (let line of lines) {
+            line = line.trim();
+            if (!line || line.startsWith('#')) continue;
+
+            if (line.startsWith('[') && line.endsWith(']')) {
+            section = line.slice(1, -1);
+            result[section] = {};
+            } else if (section && line.includes('=')) {
+            const [key, ...rest] = line.split('=');
+            result[section][key.trim()] = rest.join('=').trim();
+            } else if (section) {
+            // Unstructured line, maybe comment or malformed
+            if (!result[section]._raw) result[section]._raw = [];
+            result[section]._raw.push(line);
+            }
+        }
+        return result;
+        }
+
+        function createForm(data) {
+        const container = document.getElementById('form-container');
+        const parsed = parseINI(data);
+
+        for (const section in parsed) {
+            const fieldset = document.createElement('fieldset');
+            const legend = document.createElement('legend');
+            legend.textContent = `[${section}]`;
+            fieldset.appendChild(legend);
+
+            for (const key in parsed[section]) {
+            if (key === '_raw') continue;
+
+            const label = document.createElement('label');
+            label.textContent = key;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = `${section}.${key}`;
+            input.value = parsed[section][key];
+            label.appendChild(input);
+            fieldset.appendChild(label);
+            }
+
+            container.appendChild(fieldset);
+        }
+        }
+
+        function exportConfig() {
+        const inputs = document.querySelectorAll('input[type="text"]');
+        const output = {};
+        for (const input of inputs) {
+            const [section, key] = input.name.split('.');
+            if (!output[section]) output[section] = {};
+            output[section][key] = input.value;
+        }
+
+        // Convert back to INI string
+        let ini = '';
+        for (const section in output) {
+            ini += `[${section}]\n`;
+            for (const key in output[section]) {
+            ini += `${key} = ${output[section][key]}\n`;
+            }
+            ini += '\n';
+        }
+
+        document.getElementById('output').textContent = ini.trim();
+        }
+
+        // Replace this with the parsed `data` field from your JSON:
+        const jsonResponse = {
+        status: "OK",
+        data: `REPLACE_THIS_WITH_YOUR_LONG_DATA_STRING`
+        };
+
+        createForm(jsonResponse.data);
+    </script>
+    <div class="response-section" *ngIf="response">
+        <h3>Response</h3>
+        <div id="form-container"></div>
+        <button onclick="exportConfig()">Export Modified Config</button>
+        <pre id="output"></pre>
+    </div>

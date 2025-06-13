@@ -41,8 +41,7 @@ export class CommandType {
 
     static getStopManCommand(): CliCommand {
         return {
-            command: this.STOPMAN,
-            parameters: []
+            command: this.STOPMAN
         }
     }
 
@@ -52,4 +51,18 @@ export class CommandType {
             parameters: [mode === 'auto' ? 'a' : 'm']
         };
     }
+
+    static getConfigShow(): CliCommand {
+        return {
+            command: this.CONFIGSHOW
+        };
+    }
+
+    static getConfigSave(areaNumber: number): CliCommand {
+        return {
+            command: this.CONFIGSAVE,
+            parameters: [areaNumber.toString()]
+        };
+    }
+
 } 
