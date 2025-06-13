@@ -4,7 +4,7 @@ import {
   ElementRef,
   Renderer2,
   ViewChild,
-  NgZone,
+  NgZone
 } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { BaseCommandComponent } from '../base-command/base-command.component';
@@ -12,7 +12,7 @@ import { CliService } from '../../services/cli.service';
 import {
   CommandType,
   CliResponse,
-  CliCommand,
+  CliCommand
 } from '../../models/command.model';
 
 @Component({
@@ -41,10 +41,10 @@ import {
           <form [formGroup]="configForm">
             <textarea
               formControlName="configData"
+              hidden
               placeholder="Configuration will appear here..."
               rows="10"
               class="config-textarea"
-              hidden
             ></textarea>
           </form>
           <div #formContainer id="form-container"></div>
@@ -53,7 +53,7 @@ import {
       </div>
     </div>
   `,
-  styleUrls: ['./configure.component.css'],
+  styleUrls: ['./configure.component.css']
 })
 export class ConfigureComponent
   extends BaseCommandComponent
@@ -72,7 +72,7 @@ export class ConfigureComponent
   ) {
     super(cliService);
     this.configForm = this.formBuilder.group({
-      configData: [''],
+      configData: ['']
     });
   }
 
@@ -96,7 +96,7 @@ export class ConfigureComponent
       error: (err) => {
         this.error = err;
         this.loading = false;
-      },
+      }
     });
   }
 
@@ -104,7 +104,7 @@ export class ConfigureComponent
     const ini = this.exportForm();
     const command: CliCommand = {
       command: 'configsave',
-      parameters: [ini],
+      parameters: [ini]
     };
     this.executeCommand(command);
   }
@@ -119,11 +119,11 @@ export class ConfigureComponent
       });
     }
   }
-
   private parseINI(data: string): Record<string, Record<string, string>> {
     const lines = data.split('\n');
     const result: Record<string, Record<string, string>> = {};
     let section: string | null = null;
+
     for (let line of lines) {
       line = line.trim();
       if (!line || line.startsWith('#')) continue;
@@ -135,51 +135,41 @@ export class ConfigureComponent
         result[section][key.trim()] = rest.join('=').trim();
       }
     }
+
     return result;
   }
 
   private createForm(data: string): void {
     const container: HTMLElement = this.formContainerRef.nativeElement;
     container.innerHTML = '';
-    const parsed: Record<string, Record<string, string>> = this.parseINI(data);
+    const parsed = this.parseINI(data);
 
     const tabBar: HTMLElement = this.renderer.createElement('div');
     this.renderer.setStyle(tabBar, 'display', 'flex');
-    this.renderer.setStyle(tabBar, 'gap', '12px');
+    this.renderer.setStyle(tabBar, 'gap', '8px');
     this.renderer.setStyle(tabBar, 'marginBottom', '16px');
     this.renderer.setStyle(tabBar, 'borderBottom', '1px solid #ccc');
 
     const sectionContentMap: Record<string, HTMLElement> = {};
 
     Object.keys(parsed).forEach((section: string, idx: number) => {
-      const tabButton: HTMLButtonElement =
-        this.renderer.createElement('button');
+      const tabButton: HTMLButtonElement = this.renderer.createElement('button');
       tabButton.innerText = section;
       this.renderer.setStyle(tabButton, 'padding', '8px 16px');
       this.renderer.setStyle(tabButton, 'cursor', 'pointer');
+      this.renderer.setStyle(tabButton, 'backgroundColor', idx === 0 ? '#ddd' : '#f4f4f4');
       this.renderer.setStyle(tabButton, 'border', 'none');
-      this.renderer.setStyle(
-        tabButton,
-        'backgroundColor',
-        idx === 0 ? '#ddd' : '#f4f4f4'
-      );
-      this.renderer.setStyle(
-        tabButton,
-        'borderBottom',
-        '2px solid transparent'
-      );
-      this.renderer.setStyle(tabButton, 'fontWeight', 'normal');
-      this.renderer.setStyle(tabButton, 'color', 'black');
+      this.renderer.setStyle(tabButton, 'fontWeight', 'bold');
       this.renderer.setStyle(tabButton, 'fontSize', '1em');
 
       tabButton.addEventListener('click', () => {
-        Object.entries(sectionContentMap).forEach(([name, element]) => {
-          element.style.display = name === section ? 'block' : 'none';
+        Object.entries(sectionContentMap).forEach(([name, el]) => {
+          el.style.display = name === section ? 'block' : 'none';
         });
         Array.from(tabBar.children).forEach((btn) => {
           (btn as HTMLElement).style.backgroundColor = '#f4f4f4';
         });
-        (tabButton as HTMLElement).style.backgroundColor = '#ddd';
+        tabButton.style.backgroundColor = '#ddd';
       });
 
       this.renderer.appendChild(tabBar, tabButton);
@@ -203,6 +193,7 @@ export class ConfigureComponent
       legend.innerText = `[${section}]`;
       this.renderer.setStyle(legend, 'color', '#0077cc');
       this.renderer.setStyle(legend, 'fontWeight', 'bold');
+      this.renderer.setStyle(legend, 'fontSize', '1.2em');
       this.renderer.appendChild(fieldset, legend);
 
       if (section === 'timer') {
@@ -210,12 +201,7 @@ export class ConfigureComponent
         this.renderTimerSection(section, parsed[section], fieldset, handled);
         for (const key in parsed[section]) {
           if (!handled.has(key)) {
-            this.renderGenericField(
-              section,
-              key,
-              parsed[section][key],
-              fieldset
-            );
+            this.renderGenericField(section, key, parsed[section][key], fieldset);
           }
         }
       } else {
@@ -227,7 +213,6 @@ export class ConfigureComponent
       this.renderer.appendChild(container, fieldset);
     }
   }
-
   private renderTimerSection(
     section: string,
     sectionData: Record<string, string>,
@@ -240,54 +225,45 @@ export class ConfigureComponent
     const zoneKeys = Object.keys(sectionData).filter((k) =>
       k.startsWith('durationZone_')
     );
-    for (const key of zoneKeys) {
+    for (const key of ['activeSchedules', 'extendBy', ...zoneKeys]) {
       handledKeys.add(key);
     }
-    const zoneData: Record<string, string[][]> = {};
-    for (const key of zoneKeys) {
-      zoneData[key] = sectionData[key]
-        .split('|')
-        .map((group) => group.split(',').map((v) => v.trim()));
-    }
 
-    schedule.forEach((time: string, schedIdx: number) => {
-      const schedLabel = this.renderer.createElement('div');
-      this.renderer.setStyle(schedLabel, 'marginTop', '12px');
-      this.renderer.setStyle(schedLabel, 'fontWeight', 'bold');
-      this.renderer.setStyle(schedLabel, 'color', '#444');
-      schedLabel.innerText = `Schedule [${schedIdx}] - ${time}`;
-      this.renderer.appendChild(fieldset, schedLabel);
+    // render schedule header
+    schedule.forEach((time, schedIdx) => {
+      const header = this.renderer.createElement('div');
+      header.innerText = `Schedule [${schedIdx}] - ${time}`;
+      this.renderer.setStyle(header, 'fontWeight', 'bold');
+      this.renderer.setStyle(header, 'marginTop', '12px');
+      this.renderer.appendChild(fieldset, header);
 
-      zoneKeys.forEach((zoneKey: string) => {
-        const zoneValues = zoneData[zoneKey][schedIdx] ?? [''];
-        const value = zoneValues[0];
-
-        const rowWrapper = this.renderer.createElement('div');
-        this.renderer.setStyle(rowWrapper, 'display', 'flex');
-        this.renderer.setStyle(rowWrapper, 'alignItems', 'center');
-        this.renderer.setStyle(rowWrapper, 'marginBottom', '4px');
+      zoneKeys.forEach((zoneKey) => {
+        const row = this.renderer.createElement('div');
+        this.renderer.setStyle(row, 'display', 'flex');
+        this.renderer.setStyle(row, 'alignItems', 'center');
+        this.renderer.setStyle(row, 'marginBottom', '6px');
 
         const label = this.renderer.createElement('label');
         label.innerText = `${zoneKey}`;
-        this.renderer.setStyle(label, 'minWidth', '200px');
-        this.renderer.setStyle(label, 'marginRight', '12px');
-        this.renderer.setStyle(label, 'fontWeight', 'normal');
-        this.renderer.appendChild(rowWrapper, label);
+        this.renderer.setStyle(label, 'minWidth', '150px');
+        this.renderer.setStyle(label, 'marginRight', '8px');
+        this.renderer.appendChild(row, label);
 
-        const input = this.renderer.createElement('input');
-        this.renderer.setAttribute(input, 'type', 'text');
-        this.renderer.setAttribute(
-          input,
-          'name',
-          `${section}.${zoneKey}.${schedIdx}`
-        );
-        this.renderer.setProperty(input, 'value', value);
-        const pxWidth = Math.min(Math.max(value.length * 8, 80), 400);
-        this.renderer.setStyle(input, 'width', `${pxWidth}px`);
-        this.renderer.setStyle(input, 'fontFamily', 'monospace');
+        const group = sectionData[zoneKey].split('|');
+        const values = group[schedIdx]?.split(',') ?? [];
 
-        this.renderer.appendChild(rowWrapper, input);
-        this.renderer.appendChild(fieldset, rowWrapper);
+        for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+          const val = values[dayIdx] || '0';
+          const input = this.renderer.createElement('input');
+          this.renderer.setAttribute(input, 'type', 'text');
+          this.renderer.setAttribute(input, 'name', `${section}.${zoneKey}.${schedIdx}.${dayIdx}`);
+          this.renderer.setProperty(input, 'value', val);
+          this.renderer.setStyle(input, 'width', '32px');
+          this.renderer.setStyle(input, 'marginRight', '4px');
+          this.renderer.appendChild(row, input);
+        }
+
+        this.renderer.appendChild(fieldset, row);
       });
     });
   }
@@ -301,119 +277,114 @@ export class ConfigureComponent
     const values: string[] = rawValue.includes('|')
       ? rawValue.split('|')
       : [rawValue];
-    const isShortField: boolean =
-      values.length > 1 && values.every((v) => v.length <= 4);
+    const isShortField = values.length > 1 && values.every((v) => v.length <= 4);
 
-    const rowWrapper: HTMLElement = this.renderer.createElement('div');
-    this.renderer.setStyle(rowWrapper, 'display', 'flex');
-    this.renderer.setStyle(rowWrapper, 'alignItems', 'flex-start');
-    this.renderer.setStyle(rowWrapper, 'marginBottom', '8px');
+    const row = this.renderer.createElement('div');
+    this.renderer.setStyle(row, 'display', 'flex');
+    this.renderer.setStyle(row, 'alignItems', 'flex-start');
+    this.renderer.setStyle(row, 'marginBottom', '8px');
 
-    const label: HTMLElement = this.renderer.createElement('label');
+    const label = this.renderer.createElement('label');
     label.innerText = key;
     this.renderer.setStyle(label, 'minWidth', '200px');
     this.renderer.setStyle(label, 'fontWeight', 'bold');
     this.renderer.setStyle(label, 'marginRight', '12px');
-    this.renderer.appendChild(rowWrapper, label);
+    this.renderer.appendChild(row, label);
 
-    const inputContainer: HTMLElement = this.renderer.createElement('div');
-    this.renderer.setStyle(inputContainer, 'flexGrow', '1');
-    this.renderer.setStyle(inputContainer, 'display', 'flex');
+    const inputWrap = this.renderer.createElement('div');
+    this.renderer.setStyle(inputWrap, 'flexGrow', '1');
+    this.renderer.setStyle(inputWrap, 'display', 'flex');
     this.renderer.setStyle(
-      inputContainer,
+      inputWrap,
       'flexDirection',
       isShortField ? 'row' : 'column'
     );
-    this.renderer.setStyle(inputContainer, 'gap', isShortField ? '8px' : '4px');
+    this.renderer.setStyle(inputWrap, 'gap', isShortField ? '8px' : '4px');
 
     values.forEach((val: string, idx: number) => {
       if (val === 'true' || val === 'false') {
-        const radioWrapper: HTMLElement = this.renderer.createElement('div');
-        ['true', 'false'].forEach((option: string) => {
-          const radioLabel: HTMLElement = this.renderer.createElement('label');
-          this.renderer.setStyle(radioLabel, 'marginRight', '16px');
+        const radioGroup = this.renderer.createElement('div');
+        ['true', 'false'].forEach((opt) => {
+          const radioLabel = this.renderer.createElement('label');
+          this.renderer.setStyle(radioLabel, 'marginRight', '12px');
 
-          const radio: HTMLInputElement = this.renderer.createElement('input');
+          const radio = this.renderer.createElement('input');
           this.renderer.setAttribute(radio, 'type', 'radio');
           this.renderer.setAttribute(radio, 'name', `${section}.${key}.${idx}`);
-          this.renderer.setAttribute(radio, 'value', option);
-          if (option === val) {
+          this.renderer.setAttribute(radio, 'value', opt);
+          if (opt === val) {
             this.renderer.setProperty(radio, 'checked', true);
           }
 
           radioLabel.appendChild(radio);
-          radioLabel.appendChild(document.createTextNode(' ' + option));
-          this.renderer.appendChild(radioWrapper, radioLabel);
+          radioLabel.appendChild(document.createTextNode(' ' + opt));
+          this.renderer.appendChild(radioGroup, radioLabel);
         });
-        this.renderer.appendChild(inputContainer, radioWrapper);
+        this.renderer.appendChild(inputWrap, radioGroup);
       } else {
-        const input: HTMLInputElement = this.renderer.createElement('input');
+        const input = this.renderer.createElement('input');
         this.renderer.setAttribute(input, 'type', 'text');
         this.renderer.setAttribute(input, 'name', `${section}.${key}.${idx}`);
         this.renderer.setProperty(input, 'value', val);
         const pxWidth = Math.min(Math.max(val.length * 8, 80), 400);
         this.renderer.setStyle(input, 'width', `${pxWidth}px`);
-        this.renderer.setStyle(input, 'fontFamily', 'monospace');
-        this.renderer.appendChild(inputContainer, input);
+        this.renderer.appendChild(inputWrap, input);
       }
     });
 
-    this.renderer.appendChild(rowWrapper, inputContainer);
-    this.renderer.appendChild(fieldset, rowWrapper);
+    this.renderer.appendChild(row, inputWrap);
+    this.renderer.appendChild(fieldset, row);
   }
-
   private exportForm(): string {
     const container: HTMLElement = this.formContainerRef.nativeElement;
-    const inputs: NodeListOf<HTMLInputElement> =
-      container.querySelectorAll('input');
+    const inputs: NodeListOf<HTMLInputElement> = container.querySelectorAll('input');
 
     const output: Record<string, Record<string, string[]>> = {};
     const scheduleMap: Record<number, string> = {};
-    const durationZoneMap: Record<string, string[][]> = {};
+    const durationMap: Record<string, Record<number, string[]>> = {};
 
     inputs.forEach((input: HTMLInputElement) => {
-      const [section, key, indexStr] = input.name.split('.');
-      const index = parseInt(indexStr, 10);
+      const parts = input.name.split('.');
+      if (parts.length < 3) return;
 
-      // Handle schedule entries
+      const [section, key, ...rest] = parts;
+
+      if (!output[section]) output[section] = {};
+
+      // Handle schedule
       if (section === 'timer' && key === 'schedule') {
-        scheduleMap[index] = input.value;
+        const schedIndex = parseInt(rest[0], 10);
+        scheduleMap[schedIndex] = input.value;
         return;
       }
 
       // Handle durationZone_x
       if (section === 'timer' && key.startsWith('durationZone_')) {
-        if (!durationZoneMap[key]) durationZoneMap[key] = [];
-        if (!durationZoneMap[key][index]) durationZoneMap[key][index] = [];
-
-        if (input.type === 'radio') {
-          if (input.checked) {
-            durationZoneMap[key][index].push(input.value);
-          }
-        } else {
-          durationZoneMap[key][index].push(input.value);
-        }
+        const schedIdx = parseInt(rest[0], 10);
+        const dayIdx = parseInt(rest[1], 10);
+        if (!durationMap[key]) durationMap[key] = {};
+        if (!durationMap[key][schedIdx]) durationMap[key][schedIdx] = [];
+        durationMap[key][schedIdx][dayIdx] = input.value;
         return;
       }
 
-      // Handle regular fields
-      if (!output[section]) output[section] = {};
+      const idx = parseInt(rest[0], 10);
       if (!output[section][key]) output[section][key] = [];
 
       if (input.type === 'radio') {
         if (input.checked) {
-          output[section][key][index] = input.value;
+          output[section][key][idx] = input.value;
         }
       } else {
-        output[section][key][index] = input.value;
+        output[section][key][idx] = input.value;
       }
     });
 
-    // Construct INI text
     let ini = '';
 
+    // All sections except [timer]
     for (const section in output) {
-      if (section === 'timer') continue; // skip timer here; will handle it at the end
+      if (section === 'timer') continue;
       ini += `[${section}]\n`;
       for (const key in output[section]) {
         const values = output[section][key].filter((v) => v !== undefined);
@@ -422,34 +393,44 @@ export class ConfigureComponent
       ini += '\n';
     }
 
-    // Now output the timer section separately
+    // [timer] section
     ini += `[timer]\n`;
 
-    // Output schedule line
-    const sortedScheduleIndices = Object.keys(scheduleMap)
-      .map(Number)
-      .sort((a, b) => a - b);
-    const scheduleValues = sortedScheduleIndices.map(
-      (i) => scheduleMap[i] || ''
-    );
-    ini += `schedule = ${scheduleValues.join('|')}\n`;
+    // schedule
+    const schedIndices = Object.keys(scheduleMap).map(Number).sort((a, b) => a - b);
+    const scheduleLine = schedIndices.map(i => scheduleMap[i] || '').join('|');
+    ini += `schedule = ${scheduleLine}\n`;
 
-    // Output all durationZone_x with full 7-comma-separated values per schedule
-    for (const key in durationZoneMap) {
-      const zoneLines: string[] = [];
-      const maxScheduleIdx = Math.max(
-        ...Object.keys(durationZoneMap[key]).map(Number)
-      );
+    // add activeSchedules and extendBy if present
+    if (output['timer']) {
+      ['activeSchedules', 'extendBy'].forEach((key) => {
+        if (output['timer'][key]) {
+          const values = output['timer'][key].filter((v) => v !== undefined);
+          ini += `${key} = ${values.join('|')}\n`;
+        }
+      });
+    }
 
-      for (let schedIdx = 0; schedIdx <= maxScheduleIdx; schedIdx++) {
-        const values = durationZoneMap[key][schedIdx] || [];
-        // Fill to 7 values
-        const filled = [...values];
+    // durationZone_*
+    const zoneKeys = Object.keys(durationMap).sort((a, b) => {
+      const aNum = parseInt(a.replace('durationZone_', ''), 10);
+      const bNum = parseInt(b.replace('durationZone_', ''), 10);
+      return aNum - bNum;
+    });
+
+    for (const zoneKey of zoneKeys) {
+      const perSchedule = durationMap[zoneKey];
+      const schedLines: string[] = [];
+
+      const maxSched = Math.max(...Object.keys(perSchedule).map(Number));
+      for (let s = 0; s <= maxSched; s++) {
+        const dayValues = perSchedule[s] || [];
+        const filled = [...dayValues];
         while (filled.length < 7) filled.push('0');
-        zoneLines.push(filled.join(','));
+        schedLines.push(filled.join(','));
       }
 
-      ini += `${key} = ${zoneLines.join('|')}\n`;
+      ini += `${zoneKey} = ${schedLines.join('|')}\n`;
     }
 
     ini += '\n';
