@@ -14,6 +14,7 @@ export class CommandType {
     static START = 'start';
     static STOP = 'stop';
     static STARTMAN = 'startman';
+    static STOPMAN = 'stopman';
     static CONFIGSHOW = 'configshow';
     static CONFIGSAVE = 'configsave';
 
@@ -36,6 +37,13 @@ export class CommandType {
             command: this.STARTMAN,
             parameters: [areaNumber.toString()]
         };
+    }
+
+    static getStopManCommand(): CliCommand {
+        return {
+            command: this.STOPMAN,
+            parameters: []
+        }
     }
 
     static getModeCommand(mode: 'auto' | 'manual'): CliCommand {

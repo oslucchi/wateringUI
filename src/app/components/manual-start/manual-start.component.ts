@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { BaseCommandComponent } from '../base-command/base-command.component';
 import { CliService } from '../../services/cli.service';
 import { CommandType, CliResponse } from '../../models/command.model';
+import { StatusService } from 'src/app/services/status.service';
+import { Status } from 'src/app/models/status.model';
 
 @Component({
     selector: 'app-manual-start',
@@ -12,9 +14,10 @@ import { CommandType, CliResponse } from '../../models/command.model';
                 <button 
                     (click)="toggleManualCycle()" 
                     [disabled]="loading"
-                    [class.active]="isActive"
+                    [class.active]="isForceFlagSet"
                     class="cycle-button">
-                    {{ loading ? 'Processing...' : (isActive ? 'Stop Manual Cycle' : 'Start Manual Cycle') }}
+                    {{ loading ? 'Processing...' : 
+                        (isForceFlagSet ? 'Stop Manual Cycle' : 'Start Manual Cycle') }}
                 </button>
 
                 <div *ngIf="loading" class="status">
@@ -88,38 +91,45 @@ import { CommandType, CliResponse } from '../../models/command.model';
         }
     `]
 })
-export class ManualStartComponent extends BaseCommandComponent {
-    isActive = false;
-
-    constructor(cliService: CliService) {
+export class ManualStartComponent extends BaseCommandComponent implements OnInit {
+    constructor(cliService: CliService, 
+                private statusService: StatusService) {
         super(cliService);
     }
 
+    ngOnInit() {
+        ;
+    }
+    
+    get isForceFlagSet(): boolean {
+        const status = this.statusService.getCurrentStatus();
+        return (status ? status?.flags[Status.FLG_FORCE] : false);
+    }
+
     toggleManualCycle() {
-        if (this.isActive) {
-            // Send skip cycle command when stopping
-            this.executeCommand({
-                command: 'skip',
-                parameters: ['c']
-            });
-        } else {
-            // Send startman command when starting
-            this.executeCommand({
-                command: 'startman',
-                parameters: ['0']
-            });
-        }
+        const command = !this.isForceFlagSet
+            ? CommandType.getStartManCommand(0)
+            : CommandType.getStopManCommand();
+        console.log("Command ", JSON.stringify(command));
+
+        this.loading = true;
+        this.cliService.executeCommand(command).subscribe({
+            next: (response: CliResponse) => {
+                if (response.status === 'OK') {
+                    this.response = response;
+                    this.loading = false;
+                }
+            },
+            error: (err) => {
+                this.error = err;
+                this.loading = false;
+            }
+        });
     }
 
     protected override handleResponse(response: CliResponse): void {
         super.handleResponse(response);
         if (response.status === 'OK') {
-            // Only toggle state if command was successful
-            if (!this.isActive) {
-                this.isActive = true;
-            } else {
-                this.isActive = false;
-            }
         }
     }
 } 
