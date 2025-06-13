@@ -13,14 +13,32 @@ export class Status {
 
   // Instance fields
   nextStart: Date | null = null;
-  moisture: number[] | null = null;
-  watering: boolean[] | null = null;
-  curWateringTime: number[] | null = null;
-  expWateringTime: number[] | null = null;
+  moisture: number[] = [];
+  watering: boolean[] = [];
+  curWateringTime: number[] = [];
+  expWateringTime: number[] = [];
   versionId: number = 0;
   flags: boolean[] = new Array(Status.MNGD_FLAGS).fill(false);
 
-  constructor(init?: Partial<Status>) {
+  constructor(init?: Partial<Status>, zoneCount: number = 8) {
     Object.assign(this, init);
+        // Normalize arrays to default values with correct lengths
+    this.moisture = this.fillOrTruncate(this.moisture, zoneCount, 0);
+    this.watering = this.fillOrTruncate(this.watering, zoneCount, false);
+    this.curWateringTime = this.fillOrTruncate(this.curWateringTime, zoneCount, 0);
+    this.expWateringTime = this.fillOrTruncate(this.expWateringTime, zoneCount, 0);
+    this.flags = this.fillOrTruncate(this.flags, Status.MNGD_FLAGS, false);
+
+    if (typeof this.nextStart === 'string') {
+      this.nextStart = new Date(this.nextStart);
+    }
+  }
+
+    private fillOrTruncate<T>(arr: T[] | null | undefined, len: number, def: T): T[] {
+    const base = Array.isArray(arr) ? arr.slice(0, len) : [];
+    while (base.length < len) {
+      base.push(def);
+    }
+    return base;
   }
 }

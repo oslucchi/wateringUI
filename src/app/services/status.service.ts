@@ -53,7 +53,7 @@ export class StatusService implements OnDestroy {
 
           try {
             const parsed = JSON.parse(rawJson);
-            const statusObj = new Status(parsed);
+            const statusObj = new Status(parsed, parsed.zones);
             this.statusSubject.next(statusObj);
           } catch (err) {
             console.error('Invalid status JSON from server:', err);
