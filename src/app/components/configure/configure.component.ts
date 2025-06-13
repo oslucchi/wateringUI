@@ -45,8 +45,7 @@ import {
               rows="10"
               class="config-textarea"
               hidden
-            >
-            </textarea>
+            ></textarea>
           </form>
           <div #formContainer id="form-container"></div>
           <pre id="output"></pre>
@@ -91,7 +90,7 @@ export class ConfigureComponent
         if (response.status === 'OK') {
           this.response = response;
           this.loading = false;
-          this.handleResponse(response); // explicitly call it
+          this.handleResponse(response);
         }
       },
       error: (err) => {
@@ -139,6 +138,96 @@ export class ConfigureComponent
     return result;
   }
 
+  private createForm(data: string): void {
+    const container: HTMLElement = this.formContainerRef.nativeElement;
+    container.innerHTML = '';
+    const parsed: Record<string, Record<string, string>> = this.parseINI(data);
+
+    const tabBar: HTMLElement = this.renderer.createElement('div');
+    this.renderer.setStyle(tabBar, 'display', 'flex');
+    this.renderer.setStyle(tabBar, 'gap', '12px');
+    this.renderer.setStyle(tabBar, 'marginBottom', '16px');
+    this.renderer.setStyle(tabBar, 'borderBottom', '1px solid #ccc');
+
+    const sectionContentMap: Record<string, HTMLElement> = {};
+
+    Object.keys(parsed).forEach((section: string, idx: number) => {
+      const tabButton: HTMLButtonElement =
+        this.renderer.createElement('button');
+      tabButton.innerText = section;
+      this.renderer.setStyle(tabButton, 'padding', '8px 16px');
+      this.renderer.setStyle(tabButton, 'cursor', 'pointer');
+      this.renderer.setStyle(tabButton, 'border', 'none');
+      this.renderer.setStyle(
+        tabButton,
+        'backgroundColor',
+        idx === 0 ? '#ddd' : '#f4f4f4'
+      );
+      this.renderer.setStyle(
+        tabButton,
+        'borderBottom',
+        '2px solid transparent'
+      );
+      this.renderer.setStyle(tabButton, 'fontWeight', 'normal');
+      this.renderer.setStyle(tabButton, 'color', 'black');
+      this.renderer.setStyle(tabButton, 'fontSize', '1em');
+
+      tabButton.addEventListener('click', () => {
+        Object.entries(sectionContentMap).forEach(([name, element]) => {
+          element.style.display = name === section ? 'block' : 'none';
+        });
+        Array.from(tabBar.children).forEach((btn) => {
+          (btn as HTMLElement).style.backgroundColor = '#f4f4f4';
+        });
+        (tabButton as HTMLElement).style.backgroundColor = '#ddd';
+      });
+
+      this.renderer.appendChild(tabBar, tabButton);
+    });
+
+    this.renderer.appendChild(container, tabBar);
+
+    for (const section in parsed) {
+      const fieldset: HTMLElement = this.renderer.createElement('fieldset');
+      this.renderer.setStyle(fieldset, 'marginTop', '12px');
+      this.renderer.setStyle(fieldset, 'maxWidth', '100%');
+      this.renderer.setStyle(fieldset, 'overflow', 'auto');
+      this.renderer.setStyle(
+        fieldset,
+        'display',
+        section === Object.keys(parsed)[0] ? 'block' : 'none'
+      );
+      sectionContentMap[section] = fieldset;
+
+      const legend: HTMLElement = this.renderer.createElement('legend');
+      legend.innerText = `[${section}]`;
+      this.renderer.setStyle(legend, 'color', '#0077cc');
+      this.renderer.setStyle(legend, 'fontWeight', 'bold');
+      this.renderer.appendChild(fieldset, legend);
+
+      if (section === 'timer') {
+        const handled = new Set<string>();
+        this.renderTimerSection(section, parsed[section], fieldset, handled);
+        for (const key in parsed[section]) {
+          if (!handled.has(key)) {
+            this.renderGenericField(
+              section,
+              key,
+              parsed[section][key],
+              fieldset
+            );
+          }
+        }
+      } else {
+        for (const key in parsed[section]) {
+          this.renderGenericField(section, key, parsed[section][key], fieldset);
+        }
+      }
+
+      this.renderer.appendChild(container, fieldset);
+    }
+  }
+
   private renderTimerSection(
     section: string,
     sectionData: Record<string, string>,
@@ -155,9 +244,7 @@ export class ConfigureComponent
       handledKeys.add(key);
     }
     const zoneData: Record<string, string[][]> = {};
-
     for (const key of zoneKeys) {
-      // Split "1,1,1|2,2,2" into [[1,1,1], [2,2,2]]
       zoneData[key] = sectionData[key]
         .split('|')
         .map((group) => group.split(',').map((v) => v.trim()));
@@ -195,8 +282,7 @@ export class ConfigureComponent
           `${section}.${zoneKey}.${schedIdx}`
         );
         this.renderer.setProperty(input, 'value', value);
-        const charLength = value.length;
-        const pxWidth = Math.min(Math.max(charLength * 8, 80), 400); // min 80px, max 400px
+        const pxWidth = Math.min(Math.max(value.length * 8, 80), 400);
         this.renderer.setStyle(input, 'width', `${pxWidth}px`);
         this.renderer.setStyle(input, 'fontFamily', 'monospace');
 
@@ -204,99 +290,6 @@ export class ConfigureComponent
         this.renderer.appendChild(fieldset, rowWrapper);
       });
     });
-  }
-
-  private createForm(data: string): void {
-    const container: HTMLElement = this.formContainerRef.nativeElement;
-    container.innerHTML = '';
-    const parsed: Record<string, Record<string, string>> = this.parseINI(data);
-
-    const tabBar: HTMLElement = this.renderer.createElement('div');
-    this.renderer.setStyle(tabBar, 'display', 'flex');
-    this.renderer.setStyle(tabBar, 'gap', '12px');
-    this.renderer.setStyle(tabBar, 'marginBottom', '16px');
-    this.renderer.setStyle(tabBar, 'borderBottom', '1px solid #ccc');
-
-    const sectionContentMap: Record<string, HTMLElement> = {};
-
-    Object.keys(parsed).forEach((section: string, idx: number) => {
-      const tabButton: HTMLButtonElement =
-        this.renderer.createElement('button');
-      tabButton.innerText = section;
-      this.renderer.setStyle(tabButton, 'padding', '8px 16px');
-      this.renderer.setStyle(tabButton, 'cursor', 'pointer');
-      this.renderer.setStyle(tabButton, 'border', 'none');
-      this.renderer.setStyle(
-        tabButton,
-        'backgroundColor',
-        idx === 0 ? '#ddd' : '#f4f4f4'
-      );
-      this.renderer.setStyle(
-        tabButton,
-        'borderBottom',
-        '2px solid transparent'
-      );
-      this.renderer.setStyle(tabButton, 'fontWeight', 'normal');
-      this.renderer.setStyle(tabButton, 'color', 'black');
-      this.renderer.setStyle(tabButton, 'fontSize', '1em');
-
-
-      tabButton.addEventListener('click', () => {
-        Object.entries(sectionContentMap).forEach(([name, element]) => {
-          element.style.display = name === section ? 'block' : 'none';
-        });
-        Array.from(tabBar.children).forEach((btn) => {
-          (btn as HTMLElement).style.backgroundColor = '#f4f4f4';
-        });
-        (tabButton as HTMLElement).style.backgroundColor = '#ddd';
-      });
-
-      this.renderer.appendChild(tabBar, tabButton);
-    });
-
-    this.renderer.appendChild(container, tabBar);
-
-    for (const section in parsed) {
-      const fieldset: HTMLElement = this.renderer.createElement('fieldset');
-      this.renderer.setStyle(fieldset, 'marginTop', '12px');
-      this.renderer.setStyle(fieldset, 'maxWidth', '100%');
-      this.renderer.setStyle(fieldset, 'overflow', 'auto');
-      this.renderer.setStyle(
-        fieldset,
-        'display',
-        section === Object.keys(parsed)[0] ? 'block' : 'none'
-      );
-      sectionContentMap[section] = fieldset;
-
-      const legend: HTMLElement = this.renderer.createElement('legend');
-      legend.innerText = `[${section}]`;
-      this.renderer.setStyle(legend, 'color', '#0077cc');
-      this.renderer.setStyle(legend, 'fontWeight', 'bold');
-      this.renderer.appendChild(fieldset, legend);
-
-      if (section === 'timer') {
-        const timerHandledKeys = new Set<string>();
-        this.renderTimerSection(
-          section,
-          parsed[section],
-          fieldset,
-          timerHandledKeys
-        );
-
-        // Now render other timer keys not handled in custom layout
-        for (const key in parsed[section]) {
-          if (timerHandledKeys.has(key)) continue;
-
-          this.renderGenericField(section, key, parsed[section][key], fieldset);
-        }
-      } else {
-        for (const key in parsed[section]) {
-          this.renderGenericField(section, key, parsed[section][key], fieldset);
-        }
-      }
-
-      this.renderer.appendChild(container, fieldset);
-    }
   }
 
   private renderGenericField(
@@ -358,10 +351,8 @@ export class ConfigureComponent
         this.renderer.setAttribute(input, 'type', 'text');
         this.renderer.setAttribute(input, 'name', `${section}.${key}.${idx}`);
         this.renderer.setProperty(input, 'value', val);
-        const charLength = val.length;
-        const pxWidth = Math.min(Math.max(charLength * 8, 80), 400); // min 80px, max 400px
+        const pxWidth = Math.min(Math.max(val.length * 8, 80), 400);
         this.renderer.setStyle(input, 'width', `${pxWidth}px`);
-
         this.renderer.setStyle(input, 'fontFamily', 'monospace');
         this.renderer.appendChild(inputContainer, input);
       }
@@ -375,33 +366,97 @@ export class ConfigureComponent
     const container: HTMLElement = this.formContainerRef.nativeElement;
     const inputs: NodeListOf<HTMLInputElement> =
       container.querySelectorAll('input');
+
     const output: Record<string, Record<string, string[]>> = {};
+    const scheduleMap: Record<number, string> = {};
+    const durationZoneMap: Record<string, string[][]> = {};
 
     inputs.forEach((input: HTMLInputElement) => {
-      const [section, key, index] = input.name.split('.');
+      const [section, key, indexStr] = input.name.split('.');
+      const index = parseInt(indexStr, 10);
+
+      // Handle schedule entries
+      if (section === 'timer' && key === 'schedule') {
+        scheduleMap[index] = input.value;
+        return;
+      }
+
+      // Handle durationZone_x
+      if (section === 'timer' && key.startsWith('durationZone_')) {
+        if (!durationZoneMap[key]) durationZoneMap[key] = [];
+        if (!durationZoneMap[key][index]) durationZoneMap[key][index] = [];
+
+        if (input.type === 'radio') {
+          if (input.checked) {
+            durationZoneMap[key][index].push(input.value);
+          }
+        } else {
+          durationZoneMap[key][index].push(input.value);
+        }
+        return;
+      }
+
+      // Handle regular fields
       if (!output[section]) output[section] = {};
       if (!output[section][key]) output[section][key] = [];
 
       if (input.type === 'radio') {
         if (input.checked) {
-          output[section][key][parseInt(index)] = input.value;
+          output[section][key][index] = input.value;
         }
       } else {
-        output[section][key][parseInt(index)] = input.value;
+        output[section][key][index] = input.value;
       }
     });
 
+    // Construct INI text
     let ini = '';
+
     for (const section in output) {
+      if (section === 'timer') continue; // skip timer here; will handle it at the end
       ini += `[${section}]\n`;
       for (const key in output[section]) {
-        const joined = output[section][key].join('|');
-        ini += `${key} = ${joined}\n`;
+        const values = output[section][key].filter((v) => v !== undefined);
+        ini += `${key} = ${values.join('|')}\n`;
       }
-      ini += `\n`;
+      ini += '\n';
     }
+
+    // Now output the timer section separately
+    ini += `[timer]\n`;
+
+    // Output schedule line
+    const sortedScheduleIndices = Object.keys(scheduleMap)
+      .map(Number)
+      .sort((a, b) => a - b);
+    const scheduleValues = sortedScheduleIndices.map(
+      (i) => scheduleMap[i] || ''
+    );
+    ini += `schedule = ${scheduleValues.join('|')}\n`;
+
+    // Output all durationZone_x with full 7-comma-separated values per schedule
+    for (const key in durationZoneMap) {
+      const zoneLines: string[] = [];
+      const maxScheduleIdx = Math.max(
+        ...Object.keys(durationZoneMap[key]).map(Number)
+      );
+
+      for (let schedIdx = 0; schedIdx <= maxScheduleIdx; schedIdx++) {
+        const values = durationZoneMap[key][schedIdx] || [];
+        // Fill to 7 values
+        const filled = [...values];
+        while (filled.length < 7) filled.push('0');
+        zoneLines.push(filled.join(','));
+      }
+
+      ini += `${key} = ${zoneLines.join('|')}\n`;
+    }
+
+    ini += '\n';
+
     const pre = document.getElementById('output');
     if (pre) pre.textContent = ini.trim();
+
     return ini.trim();
   }
 }
