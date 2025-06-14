@@ -5,5 +5,5 @@ export const environment = {
         host: '192.168.200.103',
         port: 9899
     },
-    refreshInterval: 5000
+    refreshInterval: 2000
 }; 

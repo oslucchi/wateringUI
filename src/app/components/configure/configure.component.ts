@@ -61,6 +61,7 @@ export class ConfigureComponent
 {
   configForm: FormGroup;
   iniData: string | null = null;
+  iniComments: string[] = []; // Add this line
 
   @ViewChild('formContainer') formContainerRef!: ElementRef;
 
@@ -78,7 +79,8 @@ export class ConfigureComponent
 
   ngAfterViewInit(): void {
     if (this.iniData) {
-      this.createForm(this.iniData);
+      const parsed = this.parseINI(this.iniData);
+      this.createForm(parsed.sections);
     }
   }
 
@@ -125,21 +127,30 @@ export class ConfigureComponent
     if (response.status === 'OK' && response.data) {
       this.configForm.patchValue({ configData: response.data });
       this.iniData = response.data;
+      const parsed = this.parseINI(response.data);
+      this.iniComments = parsed.comments;
       this.ngZone.runOutsideAngular(() => {
-        requestAnimationFrame(() => this.createForm(this.iniData!));
+        requestAnimationFrame(() => this.createForm(parsed.sections));
       });
     }
   }
 
-  private parseINI(data: string): Record<string, Record<string, string>> {
+  private parseINI(data: string): {
+    sections: Record<string, Record<string, string>>;
+    comments: string[];
+  } {
     const lines = data.split('\n');
     const result: Record<string, Record<string, string>> = {};
+    const comments: string[] = [];
     let section: string | null = null;
 
     for (let line of lines) {
       line = line.trim();
-      if (!line || line.startsWith('#')) continue;
-      if (line.startsWith('[') && line.endsWith(']')) {
+      if (!line) continue;
+
+      if (line.startsWith('#')) {
+        comments.push(line);
+      } else if (line.startsWith('[') && line.endsWith(']')) {
         section = line.slice(1, -1);
         result[section] = {};
       } else if (section && line.includes('=')) {
@@ -148,13 +159,14 @@ export class ConfigureComponent
       }
     }
 
-    return result;
+    return { sections: result, comments };
   }
 
-  private createForm(data: string): void {
+  private createForm(
+    parsedSections: Record<string, Record<string, string>>
+  ): void {
     const container: HTMLElement = this.formContainerRef.nativeElement;
     container.innerHTML = '';
-    const parsed = this.parseINI(data);
 
     const tabBar: HTMLElement = this.renderer.createElement('div');
     this.renderer.setStyle(tabBar, 'display', 'flex');
@@ -164,7 +176,7 @@ export class ConfigureComponent
 
     const sectionContentMap: Record<string, HTMLElement> = {};
 
-    Object.keys(parsed).forEach((section: string, idx: number) => {
+    Object.keys(parsedSections).forEach((section: string, idx: number) => {
       const tabButton: HTMLButtonElement =
         this.renderer.createElement('button');
       tabButton.innerText = section;
@@ -194,7 +206,7 @@ export class ConfigureComponent
 
     this.renderer.appendChild(container, tabBar);
 
-    for (const section in parsed) {
+    for (const section in parsedSections) {
       const fieldset: HTMLElement = this.renderer.createElement('fieldset');
       this.renderer.setStyle(fieldset, 'marginTop', '12px');
       this.renderer.setStyle(fieldset, 'maxWidth', '100%');
@@ -202,7 +214,7 @@ export class ConfigureComponent
       this.renderer.setStyle(
         fieldset,
         'display',
-        section === Object.keys(parsed)[0] ? 'block' : 'none'
+        section === Object.keys(parsedSections)[0] ? 'block' : 'none'
       );
       sectionContentMap[section] = fieldset;
 
@@ -215,20 +227,30 @@ export class ConfigureComponent
 
       if (section === 'timer') {
         const handled = new Set<string>();
-        this.renderTimerSection(section, parsed[section], fieldset, handled);
-        for (const key in parsed[section]) {
+        this.renderTimerSection(
+          section,
+          parsedSections[section],
+          fieldset,
+          handled
+        );
+        for (const key in parsedSections[section]) {
           if (!handled.has(key)) {
             this.renderGenericField(
               section,
               key,
-              parsed[section][key],
+              parsedSections[section][key],
               fieldset
             );
           }
         }
       } else {
-        for (const key in parsed[section]) {
-          this.renderGenericField(section, key, parsed[section][key], fieldset);
+        for (const key in parsedSections[section]) {
+          this.renderGenericField(
+            section,
+            key,
+            parsedSections[section][key],
+            fieldset
+          );
         }
       }
 
@@ -253,6 +275,38 @@ export class ConfigureComponent
     const schedule = sectionData['schedule']?.split('|') ?? [];
     handledKeys.add('schedule');
 
+    // Render schedule inputs
+    const scheduleRow = this.renderer.createElement('div');
+    this.renderer.setStyle(scheduleRow, 'display', 'flex');
+    this.renderer.setStyle(scheduleRow, 'alignItems', 'center');
+    this.renderer.setStyle(scheduleRow, 'marginBottom', '16px');
+
+    const scheduleLabel = this.renderer.createElement('label');
+    scheduleLabel.innerText = 'Schedule Times';
+    this.renderer.setStyle(scheduleLabel, 'minWidth', '150px');
+    this.renderer.setStyle(scheduleLabel, 'marginRight', '8px');
+    this.renderer.setStyle(scheduleLabel, 'fontWeight', 'bold');
+    this.renderer.appendChild(scheduleRow, scheduleLabel);
+
+    schedule.forEach((time, schedIdx) => {
+      const input = this.renderer.createElement('input');
+      this.renderer.setAttribute(input, 'type', 'time');
+      this.renderer.setAttribute(
+        input,
+        'name',
+        `${section}.schedule.${schedIdx}`
+      );
+      // Ensure time is in HH:MM format
+      const formattedTime = time.length === 4 ? `0${time}` : time; // Handle times like "7:30" -> "07:30"
+      this.renderer.setProperty(input, 'value', formattedTime);
+      this.renderer.setStyle(input, 'width', '100px');
+      this.renderer.setStyle(input, 'marginRight', '8px');
+      this.renderer.appendChild(scheduleRow, input);
+    });
+
+    this.renderer.appendChild(fieldset, scheduleRow);
+
+    // Rest of the timer section rendering...
     const autoZoneKeys = Object.keys(sectionData).filter((k) =>
       k.startsWith('durationZone_')
     );
@@ -266,6 +320,7 @@ export class ConfigureComponent
     // Render schedule headers and auto zones
     schedule.forEach((time, schedIdx) => {
       const header = this.renderer.createElement('div');
+
       header.innerText = `Schedule [${schedIdx}] - ${time}`;
       this.renderer.setStyle(header, 'fontWeight', 'bold');
       this.renderer.setStyle(header, 'marginTop', '12px');
@@ -441,13 +496,21 @@ export class ConfigureComponent
       }
     });
 
+    // Collect all input values
     inputs.forEach((input: HTMLInputElement) => {
       const parts = input.name.split('.');
-      if (parts.length < 3) return;
+      if (parts.length < 2) return;
 
       const [section, key, ...rest] = parts;
 
       if (!output[section]) output[section] = {};
+
+      // Handle schedule inputs
+      if (section === 'timer' && key === 'schedule') {
+        const schedIndex = parseInt(rest[0], 10);
+        scheduleMap[schedIndex] = input.value;
+        return;
+      }
 
       // Handle durationZone_x
       if (section === 'timer' && key.startsWith('durationZone_')) {
@@ -481,6 +544,11 @@ export class ConfigureComponent
 
     let ini = '';
 
+    // Add comments at the top
+    if (this.iniComments.length > 0) {
+      ini += this.iniComments.join('\n') + '\n\n';
+    }
+
     // All sections except [timer]
     for (const section in output) {
       if (section === 'timer') continue;
@@ -495,12 +563,12 @@ export class ConfigureComponent
     // [timer] section
     ini += `[timer]\n`;
 
-    // schedule - reconstructed from headers
+    // schedule - from input values
     const schedIndices = Object.keys(scheduleMap)
       .map(Number)
       .sort((a, b) => a - b);
     const scheduleLine = schedIndices
-      .map((i) => scheduleMap[i] || '')
+      .map((i) => scheduleMap[i] || '07:30') // Default to 07:30 if empty
       .join('|');
     ini += `schedule = ${scheduleLine}\n`;
 
