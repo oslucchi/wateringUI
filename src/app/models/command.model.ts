@@ -58,10 +58,10 @@ export class CommandType {
         };
     }
 
-    static getConfigSave(areaNumber: number): CliCommand {
+    static getConfigSave(configString: string): CliCommand {
         return {
             command: this.CONFIGSAVE,
-            parameters: [areaNumber.toString()]
+            parameters: [configString]
         };
     }
 

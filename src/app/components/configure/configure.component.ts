@@ -4,7 +4,7 @@ import {
   ElementRef,
   Renderer2,
   ViewChild,
-  NgZone
+  NgZone,
 } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { BaseCommandComponent } from '../base-command/base-command.component';
@@ -12,7 +12,7 @@ import { CliService } from '../../services/cli.service';
 import {
   CommandType,
   CliResponse,
-  CliCommand
+  CliCommand,
 } from '../../models/command.model';
 
 @Component({
@@ -53,7 +53,7 @@ import {
       </div>
     </div>
   `,
-  styleUrls: ['./configure.component.css']
+  styleUrls: ['./configure.component.css'],
 })
 export class ConfigureComponent
   extends BaseCommandComponent
@@ -72,7 +72,7 @@ export class ConfigureComponent
   ) {
     super(cliService);
     this.configForm = this.formBuilder.group({
-      configData: ['']
+      configData: [''],
     });
   }
 
@@ -96,17 +96,28 @@ export class ConfigureComponent
       error: (err) => {
         this.error = err;
         this.loading = false;
-      }
+      },
     });
   }
 
   onSaveConfig(): void {
     const ini = this.exportForm();
-    const command: CliCommand = {
-      command: 'configsave',
-      parameters: [ini]
-    };
-    this.executeCommand(command);
+    const command = CommandType.getConfigSave(ini);
+    console.log('Command ', JSON.stringify(command));
+
+    this.loading = true;
+    this.cliService.executeCommand(command).subscribe({
+      next: (response: CliResponse) => {
+        if (response.status === 'OK') {
+          this.response = response;
+          this.loading = false;
+        }
+      },
+      error: (err) => {
+        this.error = err;
+        this.loading = false;
+      },
+    });
   }
 
   protected override handleResponse(response: CliResponse): void {
@@ -119,6 +130,7 @@ export class ConfigureComponent
       });
     }
   }
+
   private parseINI(data: string): Record<string, Record<string, string>> {
     const lines = data.split('\n');
     const result: Record<string, Record<string, string>> = {};
@@ -153,11 +165,16 @@ export class ConfigureComponent
     const sectionContentMap: Record<string, HTMLElement> = {};
 
     Object.keys(parsed).forEach((section: string, idx: number) => {
-      const tabButton: HTMLButtonElement = this.renderer.createElement('button');
+      const tabButton: HTMLButtonElement =
+        this.renderer.createElement('button');
       tabButton.innerText = section;
       this.renderer.setStyle(tabButton, 'padding', '8px 16px');
       this.renderer.setStyle(tabButton, 'cursor', 'pointer');
-      this.renderer.setStyle(tabButton, 'backgroundColor', idx === 0 ? '#ddd' : '#f4f4f4');
+      this.renderer.setStyle(
+        tabButton,
+        'backgroundColor',
+        idx === 0 ? '#ddd' : '#f4f4f4'
+      );
       this.renderer.setStyle(tabButton, 'border', 'none');
       this.renderer.setStyle(tabButton, 'fontWeight', 'bold');
       this.renderer.setStyle(tabButton, 'fontSize', '1em');
@@ -201,7 +218,12 @@ export class ConfigureComponent
         this.renderTimerSection(section, parsed[section], fieldset, handled);
         for (const key in parsed[section]) {
           if (!handled.has(key)) {
-            this.renderGenericField(section, key, parsed[section][key], fieldset);
+            this.renderGenericField(
+              section,
+              key,
+              parsed[section][key],
+              fieldset
+            );
           }
         }
       } else {
@@ -213,23 +235,35 @@ export class ConfigureComponent
       this.renderer.appendChild(container, fieldset);
     }
   }
+
   private renderTimerSection(
     section: string,
     sectionData: Record<string, string>,
     fieldset: HTMLElement,
     handledKeys: Set<string>
   ): void {
+    // Handle activeSchedules and extendBy first
+    ['activeSchedules', 'extendBy'].forEach((key) => {
+      if (sectionData[key]) {
+        this.renderGenericField(section, key, sectionData[key], fieldset);
+        handledKeys.add(key);
+      }
+    });
+
     const schedule = sectionData['schedule']?.split('|') ?? [];
     handledKeys.add('schedule');
 
-    const zoneKeys = Object.keys(sectionData).filter((k) =>
+    const autoZoneKeys = Object.keys(sectionData).filter((k) =>
       k.startsWith('durationZone_')
     );
-    for (const key of ['activeSchedules', 'extendBy', ...zoneKeys]) {
-      handledKeys.add(key);
-    }
+    const manualZoneKeys = Object.keys(sectionData).filter((k) =>
+      k.startsWith('manualZone_')
+    );
 
-    // render schedule header
+    // Add all zone keys to handledKeys
+    [...autoZoneKeys, ...manualZoneKeys].forEach((key) => handledKeys.add(key));
+
+    // Render schedule headers and auto zones
     schedule.forEach((time, schedIdx) => {
       const header = this.renderer.createElement('div');
       header.innerText = `Schedule [${schedIdx}] - ${time}`;
@@ -237,7 +271,7 @@ export class ConfigureComponent
       this.renderer.setStyle(header, 'marginTop', '12px');
       this.renderer.appendChild(fieldset, header);
 
-      zoneKeys.forEach((zoneKey) => {
+      autoZoneKeys.forEach((zoneKey) => {
         const row = this.renderer.createElement('div');
         this.renderer.setStyle(row, 'display', 'flex');
         this.renderer.setStyle(row, 'alignItems', 'center');
@@ -256,7 +290,11 @@ export class ConfigureComponent
           const val = values[dayIdx] || '0';
           const input = this.renderer.createElement('input');
           this.renderer.setAttribute(input, 'type', 'text');
-          this.renderer.setAttribute(input, 'name', `${section}.${zoneKey}.${schedIdx}.${dayIdx}`);
+          this.renderer.setAttribute(
+            input,
+            'name',
+            `${section}.${zoneKey}.${schedIdx}.${dayIdx}`
+          );
           this.renderer.setProperty(input, 'value', val);
           this.renderer.setStyle(input, 'width', '32px');
           this.renderer.setStyle(input, 'marginRight', '4px');
@@ -266,6 +304,47 @@ export class ConfigureComponent
         this.renderer.appendChild(fieldset, row);
       });
     });
+
+    // Render manual zones section
+    if (manualZoneKeys.length > 0) {
+      const manualHeader = this.renderer.createElement('div');
+      manualHeader.innerText = 'Manual Zones';
+      this.renderer.setStyle(manualHeader, 'fontWeight', 'bold');
+      this.renderer.setStyle(manualHeader, 'marginTop', '24px');
+      this.renderer.setStyle(manualHeader, 'marginBottom', '12px');
+      this.renderer.appendChild(fieldset, manualHeader);
+
+      manualZoneKeys.forEach((zoneKey) => {
+        const row = this.renderer.createElement('div');
+        this.renderer.setStyle(row, 'display', 'flex');
+        this.renderer.setStyle(row, 'alignItems', 'center');
+        this.renderer.setStyle(row, 'marginBottom', '6px');
+
+        const label = this.renderer.createElement('label');
+        label.innerText = `${zoneKey}`;
+        this.renderer.setStyle(label, 'minWidth', '150px');
+        this.renderer.setStyle(label, 'marginRight', '8px');
+        this.renderer.appendChild(row, label);
+
+        const values = sectionData[zoneKey].split(',');
+        for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+          const val = values[dayIdx] || '0';
+          const input = this.renderer.createElement('input');
+          this.renderer.setAttribute(input, 'type', 'text');
+          this.renderer.setAttribute(
+            input,
+            'name',
+            `${section}.${zoneKey}.${dayIdx}`
+          );
+          this.renderer.setProperty(input, 'value', val);
+          this.renderer.setStyle(input, 'width', '32px');
+          this.renderer.setStyle(input, 'marginRight', '4px');
+          this.renderer.appendChild(row, input);
+        }
+
+        this.renderer.appendChild(fieldset, row);
+      });
+    }
   }
 
   private renderGenericField(
@@ -277,7 +356,8 @@ export class ConfigureComponent
     const values: string[] = rawValue.includes('|')
       ? rawValue.split('|')
       : [rawValue];
-    const isShortField = values.length > 1 && values.every((v) => v.length <= 4);
+    const isShortField =
+      values.length > 1 && values.every((v) => v.length <= 4);
 
     const row = this.renderer.createElement('div');
     this.renderer.setStyle(row, 'display', 'flex');
@@ -335,13 +415,31 @@ export class ConfigureComponent
     this.renderer.appendChild(row, inputWrap);
     this.renderer.appendChild(fieldset, row);
   }
+
   private exportForm(): string {
     const container: HTMLElement = this.formContainerRef.nativeElement;
-    const inputs: NodeListOf<HTMLInputElement> = container.querySelectorAll('input');
+    const inputs: NodeListOf<HTMLInputElement> =
+      container.querySelectorAll('input');
+    const headers: NodeListOf<HTMLDivElement> =
+      container.querySelectorAll('div'); // For schedule headers
 
     const output: Record<string, Record<string, string[]>> = {};
     const scheduleMap: Record<number, string> = {};
     const durationMap: Record<string, Record<number, string[]>> = {};
+    const manualZoneMap: Record<string, string[]> = {};
+
+    // First extract schedule times from headers
+    headers.forEach((header: HTMLDivElement) => {
+      if (header.innerText.startsWith('Schedule [')) {
+        const match = header.innerText.match(
+          /Schedule \[(\d+)\] - (\d{2}:\d{2})/
+        );
+        if (match) {
+          const schedIndex = parseInt(match[1], 10);
+          scheduleMap[schedIndex] = match[2];
+        }
+      }
+    });
 
     inputs.forEach((input: HTMLInputElement) => {
       const parts = input.name.split('.');
@@ -351,13 +449,6 @@ export class ConfigureComponent
 
       if (!output[section]) output[section] = {};
 
-      // Handle schedule
-      if (section === 'timer' && key === 'schedule') {
-        const schedIndex = parseInt(rest[0], 10);
-        scheduleMap[schedIndex] = input.value;
-        return;
-      }
-
       // Handle durationZone_x
       if (section === 'timer' && key.startsWith('durationZone_')) {
         const schedIdx = parseInt(rest[0], 10);
@@ -365,6 +456,14 @@ export class ConfigureComponent
         if (!durationMap[key]) durationMap[key] = {};
         if (!durationMap[key][schedIdx]) durationMap[key][schedIdx] = [];
         durationMap[key][schedIdx][dayIdx] = input.value;
+        return;
+      }
+
+      // Handle manualZone_x
+      if (section === 'timer' && key.startsWith('manualZone_')) {
+        const dayIdx = parseInt(rest[0], 10);
+        if (!manualZoneMap[key]) manualZoneMap[key] = [];
+        manualZoneMap[key][dayIdx] = input.value;
         return;
       }
 
@@ -396,9 +495,13 @@ export class ConfigureComponent
     // [timer] section
     ini += `[timer]\n`;
 
-    // schedule
-    const schedIndices = Object.keys(scheduleMap).map(Number).sort((a, b) => a - b);
-    const scheduleLine = schedIndices.map(i => scheduleMap[i] || '').join('|');
+    // schedule - reconstructed from headers
+    const schedIndices = Object.keys(scheduleMap)
+      .map(Number)
+      .sort((a, b) => a - b);
+    const scheduleLine = schedIndices
+      .map((i) => scheduleMap[i] || '')
+      .join('|');
     ini += `schedule = ${scheduleLine}\n`;
 
     // add activeSchedules and extendBy if present
@@ -433,7 +536,19 @@ export class ConfigureComponent
       ini += `${zoneKey} = ${schedLines.join('|')}\n`;
     }
 
-    ini += '\n';
+    // manualZone_*
+    const manualZoneKeys = Object.keys(manualZoneMap).sort((a, b) => {
+      const aNum = parseInt(a.replace('manualZone_', ''), 10);
+      const bNum = parseInt(b.replace('manualZone_', ''), 10);
+      return aNum - bNum;
+    });
+
+    for (const zoneKey of manualZoneKeys) {
+      const values = manualZoneMap[zoneKey];
+      const filled = [...values];
+      while (filled.length < 7) filled.push('0');
+      ini += `${zoneKey} = ${filled.join(',')}\n`;
+    }
 
     const pre = document.getElementById('output');
     if (pre) pre.textContent = ini.trim();
