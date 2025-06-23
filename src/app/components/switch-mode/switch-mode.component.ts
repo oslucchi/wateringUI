@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { BaseCommandComponent } from '../base-command/base-command.component';
 import { CliService } from '../../services/cli.service';
-import { CommandType } from '../../models/command.model';
+import { CliResponse, CommandType } from '../../models/command.model';
+import { StatusService } from 'src/app/services/status.service';
+import { Status } from 'src/app/models/status.model';
 
 @Component({
     selector: 'app-switch-mode',
@@ -10,10 +12,18 @@ import { CommandType } from '../../models/command.model';
             <h2>Operation Mode Control</h2>
             <div class="command-content">
                 <div class="mode-buttons">
-                    <button (click)="setMode('auto')" [disabled]="loading" [class.active]="currentMode === 'auto'">
+                    <button 
+                        (click)="setMode('auto')" 
+                        [disabled]="isAutoMode" 
+                        [class.active]="(isManualMode ? 'auto' : '')"
+                    >
                         Automatic Mode
                     </button>
-                    <button (click)="setMode('manual')" [disabled]="loading" [class.active]="currentMode === 'manual'">
+                    <button 
+                        (click)="setMode('manual')" 
+                        [disabled]="isManualMode" 
+                        [class.active]="(isAutoMode ? 'manual' : '')"
+                    >
                         Manual Mode
                     </button>
                 </div>
@@ -89,15 +99,56 @@ import { CommandType } from '../../models/command.model';
         }
     `]
 })
-export class SwitchModeComponent extends BaseCommandComponent {
+export class SwitchModeComponent extends BaseCommandComponent implements OnInit{
     currentMode: 'auto' | 'manual' | null = null;
-
-    constructor(cliService: CliService) {
+    status: StatusService | null = null;
+    constructor(cliService: CliService,
+                statusService: StatusService) {
         super(cliService);
+        this.status = statusService
+    }
+
+    ngOnInit(): void {
+        this.currentMode = (this.status?.getCurrentStatus()?.flags[Status.FLG_MODE] ? "manual" : "auto");
+    }
+    
+    get isAutoMode(): boolean {
+        const currentStatus = this.status?.getCurrentStatus?.();
+        const flags = currentStatus?.flags;
+
+        if (flags != null) {
+            return !flags[Status.FLG_MODE];
+        } else {
+            return false;
+        }
+    }
+
+    get isManualMode(): boolean {
+        const currentStatus = this.status?.getCurrentStatus?.();
+        const flags = currentStatus?.flags;
+
+        if (flags != null) {
+            return flags[Status.FLG_MODE];
+        } else {
+            return false;
+        }
     }
 
     setMode(mode: 'auto' | 'manual') {
-        this.executeCommand(CommandType.getModeCommand(mode));
-        this.currentMode = mode;
+        const command = CommandType.getModeCommand(mode);
+
+        this.loading = true;
+        this.cliService.executeCommand(command).subscribe({
+            next: (response: CliResponse) => {
+                if (response.status === 'OK') {
+                }
+                this.response = response;
+                this.loading = false;
+            },
+            error: (err) => {
+                this.error = err;
+                this.loading = false;
+            }
+        });
     }
 } 

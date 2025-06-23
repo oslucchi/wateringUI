@@ -16,6 +16,7 @@ export abstract class BaseCommandComponent implements OnDestroy {
     constructor(protected cliService: CliService) {}
 
     protected executeCommand(command: CliCommand): Observable<CliResponse> {
+        this.loading = true;
         const command$ = this.cliService.executeCommand(command).pipe(
             takeUntil(this.destroy$),
             tap({
@@ -33,7 +34,7 @@ export abstract class BaseCommandComponent implements OnDestroy {
             catchError(() => EMPTY)
         );
 
-        this.loading = true;
+        this.loading = false;
         this.error = null;
         this.response = null;
 
