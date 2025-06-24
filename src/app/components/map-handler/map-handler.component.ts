@@ -1,6 +1,12 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
+import {
+  CliCommand,
+  CliResponse,
+  CommandType,
+} from 'src/app/models/command.model';
 import { Status } from 'src/app/models/status.model';
+import { CliService } from 'src/app/services/cli.service';
 import { StatusService } from 'src/app/services/status.service';
 
 interface ZoneStatus {
@@ -12,193 +18,193 @@ interface ZoneStatus {
   selector: 'app-map-handler',
   template: `
     <div class="map-container">
-        <img src="assets/images/struttura.png" class="base-map" alt="Map base">
+      <img src="assets/images/struttura.png" class="base-map" alt="Map base" />
 
-        <ng-container *ngFor="let zone of zones">
-            <img
-                [src]="getOverlayPath(zone)"
-                class="overlay"
-                [ngClass]="'zone-' + zone.zoneId"
-                alt="Zone {{ zone.zoneId }} overlay"
-            />
-        </ng-container>
-        <div
-            style="
-                position: absolute;
-                top: 260px;
-                left: 230px;
-                background: rgba(0, 0, 0, 0.6);
-                color: #3de561;
-                padding: 8px 12px;
-                border-radius: 6px;
-                font-size: 14px;
-                z-index: 1000;
-            "
-        >
-            <div style="display: flex; gap: 4px;">
-                <div style="width: 50px; font-weight: bold;">HU:</div>
-                <div>{{ moisture[0].toFixed(2) }}%</div>
-            </div>
-        </div>
-        <div
-            style="
-                position: absolute;
-                top: 65px;
-                left: 335px;
-                background: rgba(0, 0, 0, 0.6);
-                color: #e5923d;
-                padding: 8px 12px;
-                border-radius: 6px;
-                font-size: 14px;
-                z-index: 1000;
-            "
-        >
-            <div style="display: flex; gap: 4px;">
-                <div style="width: 50px; font-weight: bold;">HU:</div>
-                <div>{{ moisture[1].toFixed(2) }}%</div>
-            </div>
-        </div>
-        <div
-            style="
-                position: absolute;
-                top: 30px;
-                left: 610px;
-                background: rgba(0, 0, 0, 0.6);
-                color: #3db7e5;
-                padding: 8px 12px;
-                border-radius: 6px;
-                font-size: 14px;
-                z-index: 1000;
-            "
-        >
-            <div style="display: flex; gap: 4px;">
-                <div style="width: 50px; font-weight: bold;">HU:</div>
-                <div>{{ moisture[2].toFixed(2) }}%</div>
-            </div>
-        </div>
-        <div
-            *ngIf="isAnyWateringActive()"
-            style="
-                position: absolute;
-                top: 180px;
-                left: 330px;
-                background: rgba(0, 0, 0, 0.6);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 6px;
-                font-size: 14px;
-                z-index: 1000;
-            "
-        >
-            <div style="display: flex; gap: 4px;">
-                <div style="width: 80px; font-weight: bold;">Zone:</div>
-                <div>{{ wateringArea + 1 }}</div>
-            </div>
+      <ng-container *ngFor="let zone of zones">
+        <img
+          [src]="getOverlayPath(zone)"
+          class="overlay"
+          [ngClass]="'zone-' + zone.zoneId"
+          alt="Zone {{ zone.zoneId }} overlay"
+          (click)="onZoneClick(zone.zoneId)"
+          [style.pointerEvents]="isWatering ? 'none' : 'auto'"
+          style="cursor: pointer"
+        />
+      </ng-container>
 
-            <div style="display: flex; gap: 4px;">
-                <div style="width: 80px; font-weight: bold;">Current:</div>
-                <div>{{ curWateringTime }}</div>
-            </div>
-
-            <div style="display: flex; gap: 4px;">
-                <div style="width: 80px; font-weight: bold;">Expected:</div>
-                <div>{{ expWateringTime }}</div>
-            </div>
+      <div
+        class="moisture-box"
+        *ngFor="let value of moisture; let i = index"
+        [style.top.px]="moisturePositions[i].top"
+        [style.left.px]="moisturePositions[i].left"
+      >
+        <div style="display: flex; gap: 4px;">
+          <div style="width: 50px; font-weight: bold;">HU:</div>
+          <div>{{ value.toFixed(2) }}%</div>
         </div>
+      </div>
+
+      <div *ngIf="isWatering" class="action-buttons">
+        <button (click)="skipAction('zone')">Skip Zone</button>
+        <button (click)="skipAction('cycle')">Skip Cycle</button>
+      </div>
+
+      <div *ngIf="isWatering" class="side-button">
+        <button (click)="suspendAction(isSuspended ? 'resume' : 'suspend')">
+          {{ isSuspended ? 'Resume' : 'Suspend' }}
+        </button>
+      </div>
+
+      <div *ngIf="!isWatering" class="bottom-controls">
+        <button (click)="switchToAuto()">Switch to Auto Mode</button>
+        <button (click)="openConfiguration()">Configure</button>
+      </div>
     </div>
+  `,
+  styles: [
+    `
+      .map-container {
+        position: relative;
+        width: 900px;
+        height: auto;
+      }
+      .base-map {
+        width: 100%;
+      }
+      .overlay {
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
+      }
+      .moisture-box {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        z-index: 1000;
+      }
+      .action-buttons {
+        position: absolute;
+        top: 50%;
+        left: 40%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 1001;
+      }
+      .side-button {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        z-index: 1001;
+      }
+      .bottom-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+        z-index: 1001;
+      }
     `,
-    styles: [`
-        .map-container {
-            position: relative;
-            width: 100%;
-            max-width: 1076px; 
-        }
-
-        .base-map {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: auto;
-            pointer-events: none;
-        }
-
-    `]
+  ],
 })
 
 export class MapHandlerComponent implements OnInit, OnDestroy {
-    status: Status | null = null;
-    zones: ZoneStatus[] = 
+  command: CliCommand | null = null;
+  status: Status | null = null;
+  zones: ZoneStatus[] = 
         Array.from({ length: Status.MNGD_FLAGS }, (_, i) => ({
-            zoneId: i,
-            isActive: false,
-        })
+                zoneId: i,
+                isActive: false,
+            })
+        );
+  moisture: number[] = [0, 0, 0];
+  moisturePositions = [
+    { top: 260, left: 230 },
+    { top: 65, left: 335 },
+    { top: 30, left: 610 },
+  ];
+  watering: boolean[] = [];
+
+  statusSub: Subscription | undefined;
+  isWatering = false;
+  isSuspended = false;
+
+  constructor(
+    private statusService: StatusService,
+    private cliService: CliService
+  ) {}
+
+  ngOnInit(): void {
+    this.statusSub = this.statusService.status$.subscribe((status) => {
+      this.status = status;
+      this.isWatering = status?.flags?.[0] || false;
+      this.isSuspended = status?.flags?.[1] || false;
+      for (let i = 0; i < (status?.watering?.length ?? 0); i++) {
+        this.zones[i].isActive = status?.watering![i] ?? false;
+      }
+      this.moisture = status?.moisture || [0, 0, 0];
+      this.watering = status?.watering || [];
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.statusSub?.unsubscribe();
+  }
+
+  getOverlayPath(zone: ZoneStatus): string {
+    return `assets/images/zona-${zone.zoneId}-${
+      zone.isActive ? 'ACT' : 'INA'
+    }.png`;
+  }
+
+  onZoneClick(zoneId: number): void {
+    let currentlyWatering: number = this.watering.findIndex(
+      (flag) => flag === true
     );
-    private sub: Subscription | null = null;
-    wateringArea: number = -1;
-    curWateringTime: string = "";
-    expWateringTime: string = "";
-    moisture:number[] = [];
-
-    constructor(private statusService: StatusService) {
-        this.status = this.statusService.getCurrentStatus();
+    let action: string = 'Attivare';
+    if (currentlyWatering >= 0) {
+      // a zone is currently set to watering. If it is the same where the click
+      // happened, then the request is to stop it
+      // otherwise the currently watered zone has to be stopped and the requested one
+      // to be started
+      if (currentlyWatering == zoneId) {
+        action = 'Fermare';
+      }
     }
+    if (!confirm(`${action} la zona ${zoneId} manualmente?`)) return;
 
-
-    ngOnDestroy() {
-        this.sub?.unsubscribe();
+    if (currentlyWatering > 0) {
+      this.command = CommandType.getStopAreaCommand(currentlyWatering);
+      this.executeCommand(this.command);
     }
+    this.command = CommandType.getStartAreaCommand(zoneId);
+    this.executeCommand(this.command);
+  }
+  skipAction(skipWhat: 'zone' | 'cycle') {
+    this.command = CommandType.getSkipCommand(skipWhat);
+    this.executeCommand(this.command);
+  }
 
-    ngOnInit(): void {
-        this.sub = this.statusService.status$.subscribe((status) => {
-            this.status = status;
-            for (let i = 0; i < (status?.watering?.length ?? 0); i++)
-            {
-                this.zones[i].isActive = status?.watering![i] ?? false;
-            }
-            this.moisture = (this.status ? this.status.moisture : [0,0,0]);
-            for(let i = 0; i < this.moisture.length; i++)
-            {
-                if (this.moisture[i] > 100)
-                {
-                    this.moisture[i] = 0;
-                }
-            }
-        });
-    }
+  suspendAction(action: 'suspend' | 'resume') {
+    this.command = CommandType.getSuspendResumeCommand(action);
+    this.executeCommand(this.command);
+  }
 
-    getOverlayPath(zone: ZoneStatus): string {
-        const status = zone.isActive ? 'ACT' : 'INA';
-        return `assets/images/zona-${zone.zoneId}-${status}.png`;
-    }
-
-    isAnyWateringActive(): boolean {
-        this.wateringArea = -1;
-        this.curWateringTime = "00:00";
-        this.expWateringTime = "00:00";
-        let retVal = false;
-        let curWT = 0;
-        let expWT = 0;
-
-        if (this.status && this.status.watering)
-        {
-            this.wateringArea = this.status.watering.findIndex(w => w === true);
-
-            if(this.wateringArea >= 0)
-            {
-                retVal = true;
-                curWT = this.status.curWateringTime[this.wateringArea];
-                expWT = this.status.expWateringTime[this.wateringArea];
-                this.curWateringTime = `${(Math.floor(curWT / 60)).toString().padStart(2, '0')}:${(Math.floor(curWT % 60)).toString().padStart(2, '0')}`;
-                this.expWateringTime = `${(Math.floor(expWT / 60)).toString().padStart(2, '0')}:${(Math.floor(expWT % 60)).toString().padStart(2, '0')}`;
-            } 
+  executeCommand(command: CliCommand) {
+    this.cliService.executeCommand(command).subscribe({
+      next: (response: CliResponse) => {
+        if (response.status === 'OK') {
         }
-        return retVal;
-    }
+      },
+      error: (err) => {},
+    });
+  }
+  switchToAuto(): void {}
+
+  openConfiguration(): void {}
 }

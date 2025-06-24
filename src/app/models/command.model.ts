@@ -9,6 +9,7 @@ export interface CliResponse {
 }
 
 export class CommandType {
+
     static STATUS = 'status';
     static MODE = 'mode';
     static START = 'start';
@@ -17,6 +18,9 @@ export class CommandType {
     static STOPMAN = 'stopman';
     static CONFIGSHOW = 'configshow';
     static CONFIGSAVE = 'configsave';
+    static SKIP = 'skip';
+    static SUSPEND = 'suspend';
+    static RESUME = 'resume';
 
     static getStartAreaCommand(areaNumber: number): CliCommand {
         return {
@@ -65,4 +69,17 @@ export class CommandType {
         };
     }
 
+    static getSkipCommand(what: 'zone' | 'cycle'): CliCommand {
+        return {
+            command: this.SKIP,
+            parameters: [what]
+        };
+    }
+
+    static getSuspendResumeCommand(action: 'suspend' | 'resume'): CliCommand {
+        return {
+            command: (action == 'suspend' ? this.SUSPEND : this.RESUME),
+            parameters: []
+        }
+    }
 } 

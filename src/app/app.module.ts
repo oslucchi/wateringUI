@@ -5,7 +5,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { NavMenuComponent } from './components/nav-menu/nav-menu.component';
 import { StartAreaComponent } from './components/start-area/start-area.component';
 import { SwitchModeComponent } from './components/switch-mode/switch-mode.component';
 import { ManualStartComponent } from './components/manual-start/manual-start.component';
@@ -15,7 +14,6 @@ import { MapHandlerComponent } from './components/map-handler/map-handler.compon
 @NgModule({
   declarations: [
     AppComponent,
-    NavMenuComponent,
     StartAreaComponent,
     SwitchModeComponent,
     ManualStartComponent,
