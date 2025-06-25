@@ -50,7 +50,7 @@ interface Coordinates {
         [style.left.px]="moisturePositions[i].left"
       >
         <div style="display: flex; gap: 4px;">
-          <div style="width: 50px; font-weight: bold;">HU:</div>
+          <div style="width: 50px; font-weight: bold;">{{ i }} HU:</div>
           <div>{{ value.toFixed(2) }}%</div>
         </div>
       </div>
@@ -130,7 +130,7 @@ export class MapHandlerComponent implements OnInit, OnDestroy {
     zoneId: i,
     isActive: false,
   }));
-  moisture: number[] = [0, 0, 0];
+  moisture: number[]= [0, 0, 0];
   moisturePositions = [
     { top: 300, left: 250 },
     { top: 65, left: 390 },
@@ -210,10 +210,13 @@ export class MapHandlerComponent implements OnInit, OnDestroy {
             (y <= this.areaMaps[i][k].topY))
         {
           this.zoneClicked = i;
-          alert(`found on ${i}: clicked ${x}, ${y} - map ${this.areaMaps[i][k].botX}, ${this.areaMaps[i][k].botY} - ${this.areaMaps[i][k].topX} ${this.areaMaps[i][k].topY}`);
           break;
         }
       }
+    }
+    if (this.zoneClicked != -1)
+    {
+      this.onZoneClick(this.zoneClicked);
     }
   }
 
@@ -231,15 +234,23 @@ export class MapHandlerComponent implements OnInit, OnDestroy {
         action = 'Fermare';
       }
     }
-    if (!confirm(`${action} la zona ${zoneId} manualmente?`)) return;
-
-    if (currentlyWatering > 0) {
+    if (!confirm(`${action} l'irrigazione della zona ${zoneId}?`))
+    {
+      alert('aborting as requested');
+      return;
+    }  
+    console.log(`currentlyWatering flag ${currentlyWatering}, action ${action}`);
+    if (currentlyWatering > -1) {
       this.command = CommandType.getStopAreaCommand(currentlyWatering);
       this.executeCommand(this.command);
     }
-    this.command = CommandType.getStartAreaCommand(zoneId);
-    this.executeCommand(this.command);
+    if (action == 'Attivare')
+    {
+      this.command = CommandType.getStartAreaCommand(zoneId);
+      this.executeCommand(this.command);
+    }
   }
+
   skipAction(skipWhat: 'zone' | 'cycle') {
     this.command = CommandType.getSkipCommand(skipWhat);
     this.executeCommand(this.command);
@@ -251,6 +262,7 @@ export class MapHandlerComponent implements OnInit, OnDestroy {
   }
 
   executeCommand(command: CliCommand) {
+    console.log(`Executing ${JSON.stringify(command)}`)
     this.cliService.executeCommand(command).subscribe({
       next: (response: CliResponse) => {
         if (response.status === 'OK') {

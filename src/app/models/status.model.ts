@@ -20,10 +20,10 @@ export class Status {
   versionId: number = 0;
   flags: boolean[] = new Array(Status.MNGD_FLAGS).fill(false);
 
-  constructor(init?: Partial<Status>, zoneCount: number = 8) {
+  constructor(init?: Partial<Status>, zoneCount: number = 8, sensorCount: number = 3) {
     Object.assign(this, init);
         // Normalize arrays to default values with correct lengths
-    this.moisture = this.fillOrTruncate(this.moisture, zoneCount, 0);
+    this.moisture = this.fillOrTruncate(this.moisture, sensorCount, 0);
     this.watering = this.fillOrTruncate(this.watering, zoneCount, false);
     this.curWateringTime = this.fillOrTruncate(this.curWateringTime, zoneCount, 0);
     this.expWateringTime = this.fillOrTruncate(this.expWateringTime, zoneCount, 0);
