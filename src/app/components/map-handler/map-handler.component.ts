@@ -14,24 +14,35 @@ interface ZoneStatus {
   isActive: boolean;
 }
 
+interface Coordinates {
+  botX: number;
+  botY: number;
+  topX: number;
+  topY: number;
+}
+
 @Component({
   selector: 'app-map-handler',
   template: `
     <div class="map-container">
-      <img src="assets/images/struttura.png" class="base-map" alt="Map base" />
 
+      <img
+        src="assets/images/struttura.png"
+        class="base-map"
+        alt="Map base"
+        (click)="onBaseMapClick($event)"
+      />
       <ng-container *ngFor="let zone of zones">
         <img
           [src]="getOverlayPath(zone)"
           class="overlay"
           [ngClass]="'zone-' + zone.zoneId"
           alt="Zone {{ zone.zoneId }} overlay"
-          (click)="onZoneClick(zone.zoneId)"
           [style.pointerEvents]="isWatering ? 'none' : 'auto'"
+          (click)="onBaseMapClick($event)"
           style="cursor: pointer"
         />
       </ng-container>
-
       <div
         class="moisture-box"
         *ngFor="let value of moisture; let i = index"
@@ -112,32 +123,47 @@ interface ZoneStatus {
     `,
   ],
 })
-
 export class MapHandlerComponent implements OnInit, OnDestroy {
   command: CliCommand | null = null;
   status: Status | null = null;
-  zones: ZoneStatus[] = 
-        Array.from({ length: Status.MNGD_FLAGS }, (_, i) => ({
-                zoneId: i,
-                isActive: false,
-            })
-        );
+  zones: ZoneStatus[] = Array.from({ length: Status.MNGD_FLAGS }, (_, i) => ({
+    zoneId: i,
+    isActive: false,
+  }));
   moisture: number[] = [0, 0, 0];
   moisturePositions = [
-    { top: 260, left: 230 },
-    { top: 65, left: 335 },
-    { top: 30, left: 610 },
+    { top: 300, left: 250 },
+    { top: 65, left: 390 },
+    { top: 30, left: 700 },
   ];
   watering: boolean[] = [];
+  areaMaps: Coordinates[][] = Array.from({ length: 8 }, () => []);
 
   statusSub: Subscription | undefined;
   isWatering = false;
   isSuspended = false;
+  mouseX: number = -1;
+  mouseY: number = -1;
+  zoneClicked: number = -1;
 
   constructor(
     private statusService: StatusService,
     private cliService: CliService
-  ) {}
+  ) 
+  {
+    this.areaMaps[0].push({botX: 79, botY: 289, topX: 840, topY: 336 });
+    this.areaMaps[1].push({botX: 290, botY: 0, topX: 610, topY: 180 });
+    this.areaMaps[2].push(
+      {botX: 0, botY: 50, topX: 28, topY: 230 }, 
+      {botX: 35, botY: 0, topX: 220, topY: 20 }, 
+      {botX: 685, botY: 0, topX: 870, topY: 20 }, 
+      {botX: 875, botY: 50, topX: 900, topY: 230 }, );
+    this.areaMaps[3].push({botX: 750, botY: 500, topX: 900, topY: 650 });
+    this.areaMaps[4].push({botX: 75, botY: 370, topX: 275, topY: 390 });
+    this.areaMaps[5].push({botX: 395, botY: 370, topX: 510, topY: 385 });
+    this.areaMaps[6].push({botX: 150, botY: 160, topX: 220, topY: 230 });
+    this.areaMaps[7].push({botX: 150, botY: 55, topX: 220, topY: 122 });
+  }
 
   ngOnInit(): void {
     this.statusSub = this.statusService.status$.subscribe((status) => {
@@ -160,6 +186,35 @@ export class MapHandlerComponent implements OnInit, OnDestroy {
     return `assets/images/zona-${zone.zoneId}-${
       zone.isActive ? 'ACT' : 'INA'
     }.png`;
+  }
+
+  onBaseMapClick(event: MouseEvent): void {
+    const imageElement = event.target as HTMLImageElement;
+    const rect = imageElement.getBoundingClientRect();
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    this.mouseX = x;
+    this.mouseY = y;
+    
+    this.zoneClicked = -1;
+
+    for(let i = 0; i < this.areaMaps.length && this.zoneClicked == -1; i++)
+    {
+      for(let k = 0; k < this.areaMaps[i].length; k++)
+      {
+        if ((x >= this.areaMaps[i][k].botX) &&
+            (y >= this.areaMaps[i][k].botY) &&
+            (x <= this.areaMaps[i][k].topX) &&
+            (y <= this.areaMaps[i][k].topY))
+        {
+          this.zoneClicked = i;
+          alert(`found on ${i}: clicked ${x}, ${y} - map ${this.areaMaps[i][k].botX}, ${this.areaMaps[i][k].botY} - ${this.areaMaps[i][k].topX} ${this.areaMaps[i][k].topY}`);
+          break;
+        }
+      }
+    }
   }
 
   onZoneClick(zoneId: number): void {
